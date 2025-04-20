@@ -22,7 +22,7 @@ function [final_net_worth, log_lines, daily_values] = run_trading_strategy(vwap,
     for t = 2:N
         % Buy rule
         if (ema(t) > sma(t)) && (ema(t-1) <= sma(t-1)) && rsi(t) < 70
-            invest = 0.8 * cash;
+            invest = 0.2 * cash;
             num_shares = invest / vwap(t);
             shares = shares + num_shares;
             cash = cash - invest;
