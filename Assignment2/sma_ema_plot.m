@@ -8,6 +8,11 @@ filenames = {'HDFCBANK.csv', 'ICICIBANK.csv', 'INDUSINDBK.csv', 'KOTAKBANK.csv'}
 sma_window = 20;
 alpha = 0.1;
 
+% Create plots directory if it doesn't exist
+if ~exist('plots', 'dir')
+    mkdir('plots');
+end
+
 for i = 1:length(filenames)
     filepath = fullfile(data_folder, filenames{i});
     
@@ -33,7 +38,7 @@ for i = 1:length(filenames)
     ema = compute_ema(vwap_1000, alpha);
 
     % Plot
-    figure;
+    figure('Position', [100, 100, 1000, 600]);
     plot(dates_1000, vwap_1000, 'b'); hold on;
     plot(dates_1000, sma, 'r');
     plot(dates_1000, ema, 'g');
@@ -41,4 +46,11 @@ for i = 1:length(filenames)
     title(['VWAP + SMA + EMA - ', filenames{i}], 'Interpreter', 'none');
     xlabel('Date'); ylabel('VWAP');
     grid on;
+    datetick('x', 'mmm-yy', 'keepticks');
+    xtickangle(45);
+    
+    % Save plot
+    stock_name = erase(filenames{i}, '.csv');
+    saveas(gcf, fullfile('plots', [stock_name '_sma_ema.png']));
+    close;
 end
