@@ -14,7 +14,35 @@
 % Date: [Current Date]
 
 function plot_spectrogram(x, fs, title_str, filename)
-    % TODO: Implement spectrogram plotting function
+    % Parameters for spectrogram
+    window = hamming(1024);  % Window size
+    noverlap = 512;         % Number of overlapping samples
+    nfft = 1024;            % Number of FFT points
+    
+    % Compute spectrogram
+    [S, F, T] = spectrogram(x, window, noverlap, nfft, fs);
+    
+    % Convert to dB scale for better visualization
+    S_db = 10*log10(abs(S));
+    
+    % Create figure
+    figure('Position', [100, 100, 800, 400]);
+    
+    % Plot spectrogram
+    imagesc(T, F/1000, S_db);  % Convert frequency to kHz
+    axis xy;  % Put zero frequency at the bottom
+    colormap('jet');
+    colorbar;
+    
+    % Add labels and title
+    xlabel('Time (s)');
+    ylabel('Frequency (kHz)');
+    title(title_str);
+    
+    % Save figure if filename is provided
+    if nargin > 3
+        saveas(gcf, filename);
+    end
 end
 
 function plot_freq_response(h, fs, title_str, filename)
