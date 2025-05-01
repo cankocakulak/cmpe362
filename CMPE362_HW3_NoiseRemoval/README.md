@@ -1,63 +1,45 @@
-# CMPE362 Assignment 3: Noise Removal using FIR and IIR Filters
+# CMPE362 HW3: Noise Removal
 
-## Project Overview
-This project implements and compares different digital filters (FIR and IIR) for removing narrow-band noise from an audio signal. The implementation includes spectrogram analysis, filter design, and performance comparison.
+This project implements FIR and IIR bandstop filters to remove cicada-like noise from an audio file.
 
-## Directory Structure
-```
-CMPE362_HW3_NoiseRemoval/
-│
-├── 📂 code/
-│   ├── spectrogram_analysis.m    # Analyze original audio spectrogram
-│   ├── fir_filter_design.m       # Design FIR bandstop filter
-│   ├── iir_filter_design.m       # Design IIR bandstop filters
-│   ├── apply_filters.m           # Apply filters to audio
-│   ├── instability_analysis.m    # Analyze IIR filter stability
-│   └── utils.m                   # Helper functions
-│
-├── 📂 results/
-│   ├── 📂 spectrograms/          # Spectrogram plots
-│   ├── 📂 freq_responses/        # Frequency response plots
-│   ├── 📂 pole_zero_plots/       # Pole-zero diagrams
-│   └── 📂 filtered_audios/       # Filtered audio files
-│
-├── 📄 report.pdf                 # Project report
-└── 📄 sample.wav                 # Input audio file
-```
+## Project Structure
 
-## Requirements
-- MATLAB R2020b or later
-- Signal Processing Toolbox
-- Audio Toolbox
+- `code/`: Contains MATLAB scripts
+- `results/`: Contains outputs (spectrograms, frequency responses, etc.)
+- `sample.wav`: Original noisy audio file
 
-## Setup Instructions
-1. Clone this repository
-2. Place the `sample.wav` file in the root directory
-3. Open MATLAB and navigate to the project directory
-4. Run the scripts in the following order:
-   - `spectrogram_analysis.m`
-   - `fir_filter_design.m`
-   - `iir_filter_design.m`
-   - `apply_filters.m`
-   - `instability_analysis.m`
+## How to Run
 
-## Script Descriptions
-- `spectrogram_analysis.m`: Analyzes the original audio to identify the noise frequency band
-- `fir_filter_design.m`: Designs a 256th-order FIR bandstop filter
-- `iir_filter_design.m`: Designs Butterworth, Chebyshev Type I, and Elliptic bandstop filters
-- `apply_filters.m`: Applies the designed filters to the audio file
-- `instability_analysis.m`: Analyzes IIR filter stability with increasing orders
-- `utils.m`: Contains helper functions for plotting and saving results
+Follow these steps in MATLAB:
 
-## Results
-The results directory contains:
-- Spectrograms of original and filtered audio
-- Frequency response plots for all filters
-- Pole-zero diagrams for IIR filters
-- Filtered audio files in WAV format
+1. First, analyze the spectrogram to identify the noise frequencies:
+   ```matlab
+   cd code
+   spectrogram_analysis
+   ```
 
-## Author
-[Your Name]
+2. Next, design the FIR bandstop filter:
+   ```matlab
+   cd code
+   fir_filter_design
+   ```
 
-## Date
-[Current Date] 
+3. Finally, analyze and compare different IIR filters:
+   ```matlab
+   cd code
+   iir_filter_analysis
+   ```
+
+## Filter Types
+
+The project compares:
+- 256th-order FIR filter
+- Butterworth IIR filters
+- Chebyshev Type I IIR filters
+- Elliptic IIR filters
+
+Results are saved in the `results/` directory.
+
+## Troubleshooting
+
+If you encounter "Unrecognized function or variable" errors, ensure you're running the scripts from the `code/` directory. 
