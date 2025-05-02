@@ -2,9 +2,6 @@
 % This script generates the final plots for your report, including:
 % 1. A combined frequency response plot for FIR and optimal IIR filters
 % 2. Pole-zero plots for each IIR filter
-%
-% Author: [Your Name]
-% Date: [Current Date]
 
 clear all; close all; clc;
 
