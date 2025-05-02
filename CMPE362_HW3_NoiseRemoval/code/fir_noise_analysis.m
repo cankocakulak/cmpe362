@@ -47,7 +47,7 @@ saveas(gcf, fullfile(spectrograms_dir, 'full_spectrogram.fig'));
 
 %% Step 2: Zoom in on the frequency region of interest
 % Based on visual inspection, focus on the region where noise appears
-% most prominent in silent parts of the audio
+% most prominent in silent parts of the audio (around 4-5 kHz)
 figure('Position', [100, 100, 900, 600]);
 imagesc(t, f, s_db);
 axis xy;
@@ -56,12 +56,12 @@ colorbar;
 title('Spectrogram with Focus on Noise Band');
 xlabel('Time (seconds)');
 ylabel('Frequency (Hz)');
-ylim([5000 12000]); % Focus on mid-high frequencies where noise is visible
+ylim([0 7000]); % Focus on lower frequencies where noise is visible
 
 % Identifying the noise frequency range
 % (focusing on silent regions around 1.5-2.5 seconds)
-f1 = 8000;   % Lower bound of noise frequency (Hz)
-f2 = 10000;  % Upper bound of noise frequency (Hz)
+f1 = 4000;   % Lower bound of noise frequency (Hz)
+f2 = 5000;   % Upper bound of noise frequency (Hz)
 
 % Add horizontal lines to mark the identified noise band
 hold on;
@@ -70,7 +70,7 @@ yline(f2, 'w--', 'LineWidth', 2);
 hold off;
 
 % Add annotation explaining the frequency selection
-text(0.5, 11000, sprintf('Noise band: %d-%d Hz', f1, f2), ...
+text(0.5, 6000, sprintf('Noise band: %d-%d Hz', f1, f2), ...
     'Color', 'white', 'FontWeight', 'bold', 'FontSize', 12);
 
 % Save the zoomed spectrogram with noise band identified
@@ -125,7 +125,7 @@ grid on;
 title('Zoomed View of FIR Filter Response in Stopband Region');
 xlabel('Frequency (Hz)');
 ylabel('Magnitude (dB)');
-xlim([5000 12000]);
+xlim([2000 7000]);  % Zoom on the region around the 4-5 kHz noise band
 ylim([-100 5]);
 
 % Add the vertical lines again in the zoomed view
@@ -162,7 +162,7 @@ colorbar;
 title('Original Noisy Audio');
 xlabel('Time (seconds)');
 ylabel('Frequency (Hz)');
-ylim([5000 12000]);  % Focus on the relevant frequency range
+ylim([0 7000]);  % Focus on the lower frequency range including the noise band
 
 % Add horizontal lines to mark the noise band and filter cutoffs
 hold on;
@@ -182,7 +182,7 @@ colorbar;
 title(sprintf('FIR Filtered Audio (Order = %d)', order_fir));
 xlabel('Time (seconds)');
 ylabel('Frequency (Hz)');
-ylim([5000 12000]);  % Focus on the relevant frequency range
+ylim([0 7000]);  % Match the ylim of the original spectrogram
 
 % Add horizontal lines to mark the noise band and filter cutoffs
 hold on;
@@ -194,13 +194,63 @@ hold off;
 
 % Add legend explanation to the figure
 annotation('textbox', [0.15, 0.01, 0.7, 0.05], ...
-    'String', {'Green dashed lines: Identified noise band (8000-10000 Hz)', ...
-               'Red dashed lines: Filter cutoff frequencies (7500-10500 Hz)'}, ...
+    'String', {'Green dashed lines: Identified noise band (4000-5000 Hz)', ...
+               'Red dashed lines: Filter cutoff frequencies (3500-5500 Hz)'}, ...
     'EdgeColor', 'none', 'HorizontalAlignment', 'center');
 
 % Save the comparison figure
 saveas(gcf, fullfile(spectrograms_dir, 'original_vs_fir_filtered.png'));
 saveas(gcf, fullfile(spectrograms_dir, 'original_vs_fir_filtered.fig'));
+
+%% Step 6: Highlight the noise in silent regions for the report
+% Create a figure focusing specifically on the silent regions (1.5-2.5 seconds)
+figure('Position', [100, 100, 1000, 800]);
+
+% Original audio spectrogram of silent region
+subplot(2, 1, 1);
+imagesc(t_orig, f_orig, 10*log10(abs(s_orig) + eps));
+axis xy;
+colormap(jet);
+colorbar;
+title('Original Noisy Audio (Silent Region)');
+xlabel('Time (seconds)');
+ylabel('Frequency (Hz)');
+ylim([0 7000]);
+xlim([1.5 2.5]);  % Focus on silent region
+
+% Add horizontal lines to mark the noise band
+hold on;
+yline(f1, 'g--', 'LineWidth', 1.5);
+yline(f2, 'g--', 'LineWidth', 1.5);
+hold off;
+
+% Filtered audio spectrogram of silent region
+subplot(2, 1, 2);
+imagesc(t_filt, f_filt, 10*log10(abs(s_filt) + eps));
+axis xy;
+colormap(jet);
+colorbar;
+title('FIR Filtered Audio (Silent Region)');
+xlabel('Time (seconds)');
+ylabel('Frequency (Hz)');
+ylim([0 7000]);
+xlim([1.5 2.5]);  % Focus on silent region
+
+% Add horizontal lines to mark the noise band
+hold on;
+yline(f1, 'g--', 'LineWidth', 1.5);
+yline(f2, 'g--', 'LineWidth', 1.5);
+hold off;
+
+% Add an annotation
+annotation('textbox', [0.2, 0.01, 0.6, 0.05], ...
+    'String', {'Green dashed lines show noise band at 4000-5000 Hz', ...
+               'Notice how the noise is removed in the silent region after filtering'}, ...
+    'EdgeColor', 'none', 'HorizontalAlignment', 'center');
+
+% Save this figure for the report
+saveas(gcf, fullfile(spectrograms_dir, 'silent_region_comparison.png'));
+saveas(gcf, fullfile(spectrograms_dir, 'silent_region_comparison.fig'));
 
 fprintf('\nAnalysis and filtering complete!\n');
 fprintf('Based on spectrogram analysis, noise is concentrated in the %d-%d Hz range.\n', f1, f2);
