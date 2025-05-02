@@ -1,19 +1,3 @@
-%% Spectrogram Analysis for Noise Removal
-% CMPE362: Introduction to Signal Processing
-% Assignment 3: Noise Removal using FIR and IIR Filters
-%
-% This script analyzes the spectrogram of the noisy audio file to identify
-% the frequency band containing the cicada-like noise.
-%
-% TODO:
-% 1. Load the sample.wav file
-% 2. Compute and plot the spectrogram
-% 3. Identify the noise frequency band (f1-f2)
-% 4. Save the spectrogram plot to results/spectrograms/original_spectrogram.png
-%
-% Author: [Your Name]
-% Date: [Current Date]
-
 % Clear workspace and close all figures
 clear all;
 close all;
@@ -59,13 +43,3 @@ title('Spectrogram of Noisy Audio Signal');
 
 % Save the spectrogram
 saveas(gcf, fullfile(results_dir, 'original_spectrogram.png'));
-
-% Display instructions for identifying noise frequency band
-fprintf('Analyze the spectrogram to identify the noise frequency band.\n');
-fprintf('Look for:\n');
-fprintf('1. Continuous horizontal lines in the spectrogram\n');
-fprintf('2. Particularly in silent regions of the audio\n');
-fprintf('3. The cicada-like noise should appear as a distinct frequency band\n\n');
-
-% Note: The actual frequency band (f1, f2) will be determined by visual inspection
-% of the spectrogram. These values will be used in subsequent filter design scripts. 
