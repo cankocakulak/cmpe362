@@ -68,9 +68,9 @@ for idx = 1:length(n_vals)
     n_ellip_dir = fullfile(ellip_dir, sprintf('n%d', n)); if ~exist(n_ellip_dir, 'dir'), mkdir(n_ellip_dir); end
     
     % Call MATLAB's filter design functions directly
-    [b_butter, a_butter] = butter(n, Wn, 'stop');
-    [b_cheby, a_cheby] = cheby1(n, Rp, Wn, 'stop');
-    [b_ellip, a_ellip] = ellip(n, Rp, Rs, Wn, 'stop');
+    [b_butter, a_butter] = iir_filter_algorithms('butterworth', n, Wn);
+    [b_cheby, a_cheby] = iir_filter_algorithms('cheby1', n, Wn, Rp);
+    [b_ellip, a_ellip] = iir_filter_algorithms('ellip', n, Wn, Rp, Rs);
     
     % Full-range frequency responses
     H_butter_full = freqz(b_butter, a_butter, 0:1:fs/2, fs);
@@ -255,9 +255,9 @@ for i = 1:length(high_orders)
     end
     
     % Design filters for this specific high order
-    [b_butter_high, a_butter_high] = butter(n_high, Wn, 'stop');
-    [b_cheby_high, a_cheby_high] = cheby1(n_high, Rp, Wn, 'stop');
-    [b_ellip_high, a_ellip_high] = ellip(n_high, Rp, Rs, Wn, 'stop');
+    [b_butter_high, a_butter_high] = iir_filter_algorithms('butterworth', n_high, Wn);
+    [b_cheby_high, a_cheby_high] = iir_filter_algorithms('cheby1', n_high, Wn, Rp);
+    [b_ellip_high, a_ellip_high] = iir_filter_algorithms('ellip', n_high, Wn, Rp, Rs);
     
     % Create a detailed frequency vector
     f_detail = linspace(lower_cutoff-800, upper_cutoff+800, 2000);

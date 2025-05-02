@@ -38,13 +38,13 @@ Wn = [lower_cutoff upper_cutoff] / (fs/2);
 % Filter design
 % FIR filter
 order_fir = 256;
-b_fir = fir1(order_fir, Wn, 'stop');
+b_fir = fir_bandstop_design(order_fir, f1, f2, fs);
 a_fir = 1; % FIR filter has no feedback terms
 
 % IIR filters
-[b_butter, a_butter] = butter(n_butterworth, Wn, 'stop');
-[b_cheby, a_cheby] = cheby1(n_chebyshev, Rp, Wn, 'stop');
-[b_ellip, a_ellip] = ellip(n_elliptic, Rp, Rs, Wn, 'stop');
+[b_butter, a_butter] = iir_filter_algorithms('butterworth', n_butterworth, Wn);
+[b_cheby, a_cheby] = iir_filter_algorithms('cheby1', n_chebyshev, Wn, Rp);
+[b_ellip, a_ellip] = iir_filter_algorithms('ellip', n_elliptic, Wn, Rp, Rs);
 
 % ------------------------------------------------------------------------
 % 1. Combined Frequency Response Plot (Using full frequency range)

@@ -48,7 +48,7 @@ end
 % 1. Design FIR filter
 fprintf('Designing FIR filter (n=%d)...\n', 256);
 order_fir = 256;
-b_fir = fir1(order_fir, Wn, 'stop');
+b_fir = fir_bandstop_design(order_fir, f1, f2, fs);
 a_fir = 1; % FIR filter has no feedback terms
 
 % 2. Design IIR filters
