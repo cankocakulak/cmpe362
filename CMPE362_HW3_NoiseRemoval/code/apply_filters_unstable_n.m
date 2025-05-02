@@ -296,6 +296,3 @@ sgtitle('Comparison of Different Filters for Noise Removal (Silent Region)');
 saveas(gcf, fullfile(spectrograms_dir, 'silent_region_comparison_unstable.png'));
 saveas(gcf, fullfile(spectrograms_dir, 'silent_region_comparison_unstable.fig'));
 
-fprintf('\nAll filtered audio files have been saved to: %s\n', filtered_dir);
-fprintf('All spectrograms have been saved to: %s\n', spectrograms_dir);
-fprintf('\nFiltering complete. You can now listen to the filtered audio files and compare their quality.\n'); 
