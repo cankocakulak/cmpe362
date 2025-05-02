@@ -128,8 +128,8 @@ grid on;
 xlim([f1-100 f2+100]);
 ylim([-80 -20]);
 
-saveas(gcf, fullfile('..', 'results', 'stopband_detail_view.png'));
-saveas(gcf, fullfile('..', 'results', 'stopband_detail_view.fig'));
+saveas(gcf, fullfile('..', 'results', 'stopband_detail_view_unstable.png'));
+saveas(gcf, fullfile('..', 'results', 'stopband_detail_view_unstable.fig'));
 
 % ------------------------------------------------------------------------
 % 4. Pole-Zero Plots
