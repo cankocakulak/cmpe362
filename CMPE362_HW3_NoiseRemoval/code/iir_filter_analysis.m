@@ -1,16 +1,3 @@
-%% IIR Bandstop Filter Analysis and Comparison
-% CMPE362: Introduction to Signal Processing
-% Assignment 3: Noise Removal using FIR and IIR Filters
-%
-% This script analyzes and compares IIR bandstop filters by:
-% 1. Sweeping through different filter orders (n)
-% 2. Plotting frequency responses and pole-zero diagrams
-% 3. Comparing performance against a reference FIR filter
-% 4. Finding the lowest n for each filter type with sufficient attenuation
-%
-% Author: [Your Name]
-% Date: [Current Date]
-
 clear all; close all; clc;
 
 % Get the current script's directory and ensure filter algorithms are in the path
