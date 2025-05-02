@@ -4,20 +4,20 @@
 %
 % Four filters are applied:
 % 1. FIR filter (n=256)
-% 2. Butterworth IIR filter (n=11)
-% 3. Chebyshev Type I IIR filter (n=14)
+% 2. Butterworth IIR filter (n=10)
+% 3. Chebyshev Type I IIR filter (n=11)
 % 4. Elliptic IIR filter (n=8)
 
 clear all; close all; clc;
 
 % Optimal filter orders determined from analysis
-n_butterworth = 11;
-n_chebyshev = 14;
+n_butterworth = 10;
+n_chebyshev = 11;
 n_elliptic = 8;
 
 % Filter parameters - UPDATED based on spectrogram inspection
-f1 = 8000; % Lower edge of noise band (Hz)
-f2 = 10000; % Upper edge of noise band (Hz)
+f1 = 4000; % Lower edge of noise band (Hz)
+f2 = 5000; % Upper edge of noise band (Hz)
 lower_cutoff = f1 - 500; % Hz
 upper_cutoff = f2 + 500; % Hz
 Rp = 0.1; % Passband ripple (dB)
@@ -82,7 +82,7 @@ fprintf('Generating spectrograms...\n');
 window_size = 1024;        % Window size for spectrogram
 overlap = round(0.75 * window_size); % 75% overlap for better visualization
 nfft = 2048;               % Number of FFT points
-freq_range = [5000 12000];  % Focus on the area around the revised noise band
+freq_range = [0 7000];     % Focus on the area around the revised noise band
 
 % Function to plot and save spectrogram
 function plot_spectrogram(audio, fs, title_text, filename, window_size, overlap, nfft, freq_range, f1, f2)
@@ -215,6 +215,86 @@ sgtitle(sprintf('Comparison of Different Filters for Noise Removal (%d-%d Hz)', 
 % Save the combined spectrogram
 saveas(gcf, fullfile(spectrograms_dir, 'combined_spectrograms.png'));
 saveas(gcf, fullfile(spectrograms_dir, 'combined_spectrograms.fig'));
+
+% 7. Create a focused view on silent regions (1.5-2.5 seconds)
+figure('Position', [100, 100, 1200, 900]);
+
+% Original signal - silent region
+subplot(3, 2, 1);
+[s, f, t] = spectrogram(x, hamming(window_size), overlap, nfft, fs, 'yaxis');
+imagesc(t, f, 10*log10(abs(s) + eps));
+axis xy; colormap(jet); colorbar;
+hold on;
+yline(f1, 'w--', 'LineWidth', 1.5);
+yline(f2, 'w--', 'LineWidth', 1.5);
+hold off;
+title('Original Noisy Signal (Silent Region)');
+xlabel('Time (seconds)'); ylabel('Frequency (Hz)');
+ylim(freq_range);
+xlim([1.5 2.5]); % Focus on silent region
+
+% FIR filter - silent region
+subplot(3, 2, 3);
+[s, f, t] = spectrogram(y_fir, hamming(window_size), overlap, nfft, fs, 'yaxis');
+imagesc(t, f, 10*log10(abs(s) + eps));
+axis xy; colormap(jet); colorbar;
+hold on;
+yline(f1, 'w--', 'LineWidth', 1.5);
+yline(f2, 'w--', 'LineWidth', 1.5);
+hold off;
+title('FIR Filtered (n=256)');
+xlabel('Time (seconds)'); ylabel('Frequency (Hz)');
+ylim(freq_range);
+xlim([1.5 2.5]); % Focus on silent region
+
+% Butterworth - silent region
+subplot(3, 2, 4);
+[s, f, t] = spectrogram(y_butter, hamming(window_size), overlap, nfft, fs, 'yaxis');
+imagesc(t, f, 10*log10(abs(s) + eps));
+axis xy; colormap(jet); colorbar;
+hold on;
+yline(f1, 'w--', 'LineWidth', 1.5);
+yline(f2, 'w--', 'LineWidth', 1.5);
+hold off;
+title(sprintf('Butterworth Filtered (n=%d)', n_butterworth));
+xlabel('Time (seconds)'); ylabel('Frequency (Hz)');
+ylim(freq_range);
+xlim([1.5 2.5]); % Focus on silent region
+
+% Chebyshev - silent region
+subplot(3, 2, 5);
+[s, f, t] = spectrogram(y_cheby, hamming(window_size), overlap, nfft, fs, 'yaxis');
+imagesc(t, f, 10*log10(abs(s) + eps));
+axis xy; colormap(jet); colorbar;
+hold on;
+yline(f1, 'w--', 'LineWidth', 1.5);
+yline(f2, 'w--', 'LineWidth', 1.5);
+hold off;
+title(sprintf('Chebyshev Filtered (n=%d)', n_chebyshev));
+xlabel('Time (seconds)'); ylabel('Frequency (Hz)');
+ylim(freq_range);
+xlim([1.5 2.5]); % Focus on silent region
+
+% Elliptic - silent region
+subplot(3, 2, 6);
+[s, f, t] = spectrogram(y_ellip, hamming(window_size), overlap, nfft, fs, 'yaxis');
+imagesc(t, f, 10*log10(abs(s) + eps));
+axis xy; colormap(jet); colorbar;
+hold on;
+yline(f1, 'w--', 'LineWidth', 1.5);
+yline(f2, 'w--', 'LineWidth', 1.5);
+hold off;
+title(sprintf('Elliptic Filtered (n=%d)', n_elliptic));
+xlabel('Time (seconds)'); ylabel('Frequency (Hz)');
+ylim(freq_range);
+xlim([1.5 2.5]); % Focus on silent region
+
+% Add a title to the figure
+sgtitle('Comparison of Different Filters for Noise Removal (Silent Region)');
+
+% Save the combined spectrogram for silent region
+saveas(gcf, fullfile(spectrograms_dir, 'silent_region_comparison.png'));
+saveas(gcf, fullfile(spectrograms_dir, 'silent_region_comparison.fig'));
 
 fprintf('\nAll filtered audio files have been saved to: %s\n', filtered_dir);
 fprintf('All spectrograms have been saved to: %s\n', spectrograms_dir);

@@ -134,7 +134,7 @@ colorbar;
 title('Original Noisy Audio');
 xlabel('Time (seconds)');
 ylabel('Frequency (Hz)');
-ylim([0 10000]);  % Focus on the lower frequency range
+ylim([0 7000]);  % Match with IIR filter visualization
 
 % Add horizontal lines to mark the noise band and filter cutoffs
 hold on;
@@ -154,7 +154,7 @@ colorbar;
 title('FIR Filtered Audio (Order = 256)');
 xlabel('Time (seconds)');
 ylabel('Frequency (Hz)');
-ylim([0 10000]);  % Focus on the lower frequency range
+ylim([0 7000]);  % Match with IIR filter visualization
 
 % Add horizontal lines to mark the noise band and filter cutoffs
 hold on;
@@ -173,6 +173,55 @@ annotation('textbox', [0.15, 0.01, 0.7, 0.05], ...
 % Save the comparison figure
 saveas(gcf, fullfile(spectrograms_dir, 'original_vs_fir_filtered.png'));
 saveas(gcf, fullfile(spectrograms_dir, 'original_vs_fir_filtered.fig'));
+
+% Create a focused view of silent regions (1.5-2.5 seconds)
+figure('Position', [100, 100, 800, 600]);
+
+% Original audio spectrogram of silent region
+subplot(2, 1, 1);
+imagesc(t_orig, f_orig, 10*log10(abs(s_orig) + eps));
+axis xy;
+colormap(jet);
+colorbar;
+title('Original Noisy Audio (Silent Region)');
+xlabel('Time (seconds)');
+ylabel('Frequency (Hz)');
+ylim([0 7000]);
+xlim([1.5 2.5]);  % Focus on silent region
+
+% Add horizontal lines to mark the noise band
+hold on;
+yline(f1, 'g--', 'LineWidth', 1.5);
+yline(f2, 'g--', 'LineWidth', 1.5);
+hold off;
+
+% Filtered audio spectrogram of silent region
+subplot(2, 1, 2);
+imagesc(t_filt, f_filt, 10*log10(abs(s_filt) + eps));
+axis xy;
+colormap(jet);
+colorbar;
+title('FIR Filtered Audio (Silent Region)');
+xlabel('Time (seconds)');
+ylabel('Frequency (Hz)');
+ylim([0 7000]);
+xlim([1.5 2.5]);  % Focus on silent region
+
+% Add horizontal lines to mark the noise band
+hold on;
+yline(f1, 'g--', 'LineWidth', 1.5);
+yline(f2, 'g--', 'LineWidth', 1.5);
+hold off;
+
+% Add annotation about noise removal
+annotation('textbox', [0.2, 0.01, 0.6, 0.05], ...
+    'String', {'Green dashed lines show noise band at 4000-5000 Hz', ...
+               'Notice how the noise is removed in the silent region after filtering'}, ...
+    'EdgeColor', 'none', 'HorizontalAlignment', 'center');
+
+% Save the silent region figure
+saveas(gcf, fullfile(spectrograms_dir, 'fir_silent_region_comparison.png'));
+saveas(gcf, fullfile(spectrograms_dir, 'fir_silent_region_comparison.fig'));
 
 % Save filter coefficients for later use
 save(fullfile(results_dir, 'fir_coeffs.mat'), 'b', 'order', 'Wn', 'f1', 'f2', 'fs');

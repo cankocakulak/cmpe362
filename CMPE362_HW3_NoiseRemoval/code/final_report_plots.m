@@ -9,8 +9,8 @@
 clear all; close all; clc;
 
 % Optimal filter orders determined from analysis
-n_butterworth = 11;
-n_chebyshev = 14;
+n_butterworth = 10;
+n_chebyshev = 11;
 n_elliptic = 8;
 
 % Note about actual filter order implementation
@@ -21,9 +21,9 @@ fprintf('Butterworth: n = %d (actual order = %d)\n', n_butterworth, 2*n_butterwo
 fprintf('Chebyshev:   n = %d (actual order = %d)\n', n_chebyshev, 2*n_chebyshev);
 fprintf('Elliptic:    n = %d (actual order = %d)\n', n_elliptic, 2*n_elliptic);
 
-% Filter parameters
-f1 = 7700; % Lower edge of noise band (Hz)
-f2 = 8300; % Upper edge of noise band (Hz)
+% Filter parameters - UPDATED based on spectrogram analysis
+f1 = 4000; % Lower edge of noise band (Hz)
+f2 = 5000; % Upper edge of noise band (Hz)
 lower_cutoff = f1 - 500; % Hz
 upper_cutoff = f2 + 500; % Hz
 Rp = 0.1; % Passband ripple (dB)
@@ -82,52 +82,39 @@ saveas(gcf, fullfile('..', 'results', 'final_frequency_response_full.fig'));
 % 2. Zoomed Frequency Response Plot (Using the zoom approach from iir_filter_analysis.m)
 % ------------------------------------------------------------------------
 
-% Use a higher resolution and focused band to exactly match what worked in iir_filter_analysis.m
-% Create a detailed frequency vector (directly matching what worked in iir_filter_analysis.m)
-f_detail = linspace(lower_cutoff-800, upper_cutoff+800, 2000);
-w_detail = 2*pi*f_detail/fs;
+% Use a higher resolution and focused band
+f_plot_zoom = linspace(2000, 7000, 2000);  % Focus on the 4-5 kHz noise band region
+w_plot_zoom = 2*pi*f_plot_zoom/fs;
 
-% Get responses
-H_fir_detail = freqz(b_fir, 1, w_detail, fs);
-H_butter_detail = freqz(b_butter, a_butter, w_detail, fs);
-H_cheby_detail = freqz(b_cheby, a_cheby, w_detail, fs);
-H_ellip_detail = freqz(b_ellip, a_ellip, w_detail, fs);
+H_fir_zoom = freqz(b_fir, 1, w_plot_zoom, fs);
+H_butter_zoom = freqz(b_butter, a_butter, w_plot_zoom, fs);
+H_cheby_zoom = freqz(b_cheby, a_cheby, w_plot_zoom, fs);
+H_ellip_zoom = freqz(b_ellip, a_ellip, w_plot_zoom, fs);
 
-% Create a detailed comparison plot
-figure('Position', [100, 100, 800, 600]);
-plot(f_detail, 20*log10(abs(H_fir_detail)), 'b', 'LineWidth', 1.5); hold on;
-plot(f_detail, 20*log10(abs(H_butter_detail)), 'r', 'LineWidth', 1.5);
-plot(f_detail, 20*log10(abs(H_cheby_detail)), 'g', 'LineWidth', 1.5);
-plot(f_detail, 20*log10(abs(H_ellip_detail)), 'm', 'LineWidth', 1.5);
+figure('Position', [100, 100, 800, 500]);
+plot(f_plot_zoom, 20*log10(abs(H_fir_zoom)), 'b-', 'LineWidth', 1.5); hold on;
+plot(f_plot_zoom, 20*log10(abs(H_butter_zoom)), 'r-', 'LineWidth', 1.5);
+plot(f_plot_zoom, 20*log10(abs(H_cheby_zoom)), 'g-', 'LineWidth', 1.5);
+plot(f_plot_zoom, 20*log10(abs(H_ellip_zoom)), 'm-', 'LineWidth', 1.5);
 
-% Add vertical lines for stopband edges
-line([lower_cutoff lower_cutoff], ylim, 'Color', 'k', 'LineStyle', '--');
-line([upper_cutoff upper_cutoff], ylim, 'Color', 'k', 'LineStyle', '--');
-
-% Find minima for each filter to annotate depths (directly from iir_filter_analysis.m)
-[min_butter_val, min_butter_idx] = min(20*log10(abs(H_butter_detail)));
-[min_cheby_val, min_cheby_idx] = min(20*log10(abs(H_cheby_detail)));
-[min_ellip_val, min_ellip_idx] = min(20*log10(abs(H_ellip_detail)));
-
-% Mark the deepest points in each filter response
-plot(f_detail(min_butter_idx), min_butter_val, 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
-text(f_detail(min_butter_idx)+50, min_butter_val, sprintf('%.1f dB', min_butter_val), 'Color', 'r');
-
-plot(f_detail(min_cheby_idx), min_cheby_val, 'go', 'MarkerSize', 8, 'MarkerFaceColor', 'g');
-text(f_detail(min_cheby_idx)+50, min_cheby_val, sprintf('%.1f dB', min_cheby_val), 'Color', 'g');
-
-plot(f_detail(min_ellip_idx), min_ellip_val, 'mo', 'MarkerSize', 8, 'MarkerFaceColor', 'm');
-text(f_detail(min_ellip_idx)+50, min_ellip_val, sprintf('%.1f dB', min_ellip_val), 'Color', 'm');
+% Add vertical lines to mark the stopband region and noise band
+hold on;
+xline(lower_cutoff, 'r--', 'LineWidth', 1.2, 'Lower Cutoff');
+xline(upper_cutoff, 'r--', 'LineWidth', 1.2, 'Upper Cutoff');
+xline(f1, 'k--', 'LineWidth', 1.2, 'Noise Band Start');
+xline(f2, 'k--', 'LineWidth', 1.2, 'Noise Band End');
+hold off;
 
 % Format the plot
-xlabel('Frequency (Hz)'); ylabel('Magnitude (dB)');
+xlabel('Frequency (Hz)');
+ylabel('Magnitude (dB)');
 title('Magnitude of Frequency Response (log scale)');
 legend('FIR (n=256)', ...
        ['Butterworth (n=' num2str(n_butterworth) ')'], ...
        ['Chebyshev (n=' num2str(n_chebyshev) ')'], ...
        ['Elliptic (n=' num2str(n_elliptic) ')'], 'Location', 'southeast');
 grid on;
-xlim([lower_cutoff-800 upper_cutoff+800]);
+xlim([2000 7000]);
 ylim([-80 5]);
 
 % Save the zoomed plot
@@ -135,7 +122,64 @@ saveas(gcf, fullfile('..', 'results', 'final_frequency_response.png'));
 saveas(gcf, fullfile('..', 'results', 'final_frequency_response.fig'));
 
 % ------------------------------------------------------------------------
-% 3. Pole-Zero Plots
+% 3. Detailed Stopband View
+% ------------------------------------------------------------------------
+figure('Position', [100, 100, 800, 500]);
+plot(f_plot_zoom, 20*log10(abs(H_fir_zoom)), 'b-', 'LineWidth', 1.5); hold on;
+plot(f_plot_zoom, 20*log10(abs(H_butter_zoom)), 'r-', 'LineWidth', 1.5);
+plot(f_plot_zoom, 20*log10(abs(H_cheby_zoom)), 'g-', 'LineWidth', 1.5);
+plot(f_plot_zoom, 20*log10(abs(H_ellip_zoom)), 'm-', 'LineWidth', 1.5);
+
+% Add vertical lines to mark the noise band
+hold on;
+xline(f1, 'k--', 'LineWidth', 1.2);
+xline(f2, 'k--', 'LineWidth', 1.2);
+hold off;
+
+% Find minimum attenuation in the stopband for each filter
+[min_fir_val, min_fir_idx] = min(20*log10(abs(H_fir_zoom(f_plot_zoom >= f1 & f_plot_zoom <= f2))));
+[min_butter_val, min_butter_idx] = min(20*log10(abs(H_butter_zoom(f_plot_zoom >= f1 & f_plot_zoom <= f2))));
+[min_cheby_val, min_cheby_idx] = min(20*log10(abs(H_cheby_zoom(f_plot_zoom >= f1 & f_plot_zoom <= f2))));
+[min_ellip_val, min_ellip_idx] = min(20*log10(abs(H_ellip_zoom(f_plot_zoom >= f1 & f_plot_zoom <= f2))));
+
+% Convert indices back to the full range indices
+indices_in_range = find(f_plot_zoom >= f1 & f_plot_zoom <= f2);
+min_fir_idx = indices_in_range(min_fir_idx);
+min_butter_idx = indices_in_range(min_butter_idx);
+min_cheby_idx = indices_in_range(min_cheby_idx);
+min_ellip_idx = indices_in_range(min_ellip_idx);
+
+% Mark the minimum points
+plot(f_plot_zoom(min_fir_idx), min_fir_val, 'bo', 'MarkerSize', 8, 'MarkerFaceColor', 'b');
+text(f_plot_zoom(min_fir_idx)+50, min_fir_val, sprintf('%.1f dB', min_fir_val), 'Color', 'b');
+
+plot(f_plot_zoom(min_butter_idx), min_butter_val, 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
+text(f_plot_zoom(min_butter_idx)+50, min_butter_val, sprintf('%.1f dB', min_butter_val), 'Color', 'r');
+
+plot(f_plot_zoom(min_cheby_idx), min_cheby_val, 'go', 'MarkerSize', 8, 'MarkerFaceColor', 'g');
+text(f_plot_zoom(min_cheby_idx)+50, min_cheby_val, sprintf('%.1f dB', min_cheby_val), 'Color', 'g');
+
+plot(f_plot_zoom(min_ellip_idx), min_ellip_val, 'mo', 'MarkerSize', 8, 'MarkerFaceColor', 'm');
+text(f_plot_zoom(min_ellip_idx)+50, min_ellip_val, sprintf('%.1f dB', min_ellip_val), 'Color', 'm');
+
+% Format the plot
+xlabel('Frequency (Hz)');
+ylabel('Magnitude (dB)');
+title('Stopband Detail View with Minimum Attenuation Points');
+legend('FIR (n=256)', ...
+       ['Butterworth (n=' num2str(n_butterworth) ')'], ...
+       ['Chebyshev (n=' num2str(n_chebyshev) ')'], ...
+       ['Elliptic (n=' num2str(n_elliptic) ')'], 'Location', 'southeast');
+grid on;
+xlim([f1-100 f2+100]);  % Tight focus on the noise band
+ylim([-80 -20]);  % Focus on the attenuation levels
+
+% Save the detail view plot
+saveas(gcf, fullfile('..', 'results', 'stopband_detail_view.png'));
+saveas(gcf, fullfile('..', 'results', 'stopband_detail_view.fig'));
+
+% ------------------------------------------------------------------------
+% 4. Pole-Zero Plots
 % ------------------------------------------------------------------------
 figure('Position', [100, 100, 900, 300]);
 

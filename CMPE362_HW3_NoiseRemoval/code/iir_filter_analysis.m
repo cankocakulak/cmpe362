@@ -18,8 +18,8 @@ current_dir = fileparts(mfilename('fullpath'));
 addpath(current_dir);  % Add the current directory to the path
 
 % --- User-editable parameters ---
-f1 = 7700; % Lower edge of noise band (Hz)
-f2 = 8300; % Upper edge of noise band (Hz)
+f1 = 4000; % Lower edge of noise band (Hz)
+f2 = 5000; % Upper edge of noise band (Hz)
 order_fir = 256; % FIR filter order (fixed)
 n_vals = 2:20;   % IIR filter orders to try
 Rp = 0.1;        % Passband ripple for Chebyshev/Elliptic (dB) - must be 0.1 as per assignment
@@ -36,7 +36,7 @@ Wn = [lower_cutoff upper_cutoff] / (fs/2);
 fprintf('Normalized cutoff frequencies: [%.4f %.4f]\n', Wn(1), Wn(2));
 
 % Frequency range for plotting (zoomed on stopband)
-f_plot = 6000:1:10000;
+f_plot = 2000:1:7000;
 w_plot = 2*pi*f_plot/fs;
 
 % --- Load FIR filter coefficients ---
@@ -200,7 +200,7 @@ for idx = 1:length(n_vals)
     % --- Summary Table and Best n Tracking ---
     % Create a more focused frequency vector for accurate attenuation measurement
     % Use a higher resolution sampling in the stopband
-    f_stop = linspace(lower_cutoff, upper_cutoff, 1000);
+    f_stop = linspace(f1, f2, 1000);
     w_stop = 2*pi*f_stop/fs;
     
     % Get frequency responses at the stopband frequencies
