@@ -4,9 +4,9 @@
 %
 % Four filters are applied:
 % 1. FIR filter (n=256)
-% 2. Butterworth IIR filter (n=10)
-% 3. Chebyshev Type I IIR filter (n=11)
-% 4. Elliptic IIR filter (n=8)
+% 2. Butterworth IIR filter (n=13)
+% 3. Chebyshev Type I IIR filter (n=14)
+% 4. Elliptic IIR filter (n=12)
 
 clear all; close all; clc;
 
