@@ -21,17 +21,19 @@ addpath(current_dir);  % Add the current directory to the path
 f1 = 7700; % Lower edge of noise band (Hz)
 f2 = 8300; % Upper edge of noise band (Hz)
 order_fir = 256; % FIR filter order (fixed)
-n_vals = 2:35;   % IIR filter orders to try
-Rp = 0.1;        % Passband ripple for Chebyshev/Elliptic (dB)
+n_vals = 2:20;   % IIR filter orders to try
+Rp = 0.1;        % Passband ripple for Chebyshev/Elliptic (dB) - must be 0.1 as per assignment
 Rs = 40;         % Stopband attenuation for Elliptic (dB)
 
 % Load audio and sampling rate
 [x, fs] = audioread(fullfile('..', 'sample.wav'));
+fprintf('Audio file sampling rate: %.1f Hz\n', fs);
 
-% Define stopband edges
+% Define stopband edges - same as used for FIR filter
 lower_cutoff = f1 - 500; % Hz
 upper_cutoff = f2 + 500; % Hz
 Wn = [lower_cutoff upper_cutoff] / (fs/2);
+fprintf('Normalized cutoff frequencies: [%.4f %.4f]\n', Wn(1), Wn(2));
 
 % Frequency range for plotting (zoomed on stopband)
 f_plot = 6000:1:10000;
@@ -78,10 +80,10 @@ for idx = 1:length(n_vals)
     n_cheby_dir = fullfile(cheby_dir, sprintf('n%d', n)); if ~exist(n_cheby_dir, 'dir'), mkdir(n_cheby_dir); end
     n_ellip_dir = fullfile(ellip_dir, sprintf('n%d', n)); if ~exist(n_ellip_dir, 'dir'), mkdir(n_ellip_dir); end
     
-    % Design filters using modular functions
-    [b_butter, a_butter] = iir_filter_algorithms('butterworth', n, Wn);
-    [b_cheby, a_cheby] = iir_filter_algorithms('cheby1', n, Wn, Rp);
-    [b_ellip, a_ellip] = iir_filter_algorithms('ellip', n, Wn, Rp, Rs);
+    % Call MATLAB's filter design functions directly
+    [b_butter, a_butter] = butter(n, Wn, 'stop');
+    [b_cheby, a_cheby] = cheby1(n, Rp, Wn, 'stop');
+    [b_ellip, a_ellip] = ellip(n, Rp, Rs, Wn, 'stop');
     
     % Full-range frequency responses
     H_butter_full = freqz(b_butter, a_butter, 0:1:fs/2, fs);
@@ -127,7 +129,8 @@ for idx = 1:length(n_vals)
     hold off;
     
     % --- Zoomed Frequency Response Plot (Comparison) ---
-    f_plot_zoom = 7000:1:9000;
+    % Use a higher resolution and narrower band for better stopband visualization
+    f_plot_zoom = linspace(lower_cutoff-600, upper_cutoff+600, 1000);
     w_plot_zoom = 2*pi*f_plot_zoom/fs;
     H_fir_zoom = freqz(b_fir, 1, w_plot_zoom, fs);
     H_butter_zoom = freqz(b_butter, a_butter, w_plot_zoom, fs);
@@ -142,7 +145,11 @@ for idx = 1:length(n_vals)
     xlabel('Frequency (Hz)'); ylabel('Magnitude (dB)');
     title(sprintf('Frequency Response (Zoomed), n = %d', n));
     legend('FIR','Butterworth','Chebyshev','Elliptic'); grid on;
-    xlim([7000 9000]);
+    ylim([-80, 5]); % Set y-axis limits to better show attenuation
+    xlim([lower_cutoff-600 upper_cutoff+600]);
+    % Add vertical lines to mark the stopband
+    line([lower_cutoff lower_cutoff], ylim, 'Color', 'k', 'LineStyle', '--');
+    line([upper_cutoff upper_cutoff], ylim, 'Color', 'k', 'LineStyle', '--');
     saveas(gcf, fullfile(cmp_zoom_dir, sprintf('n%d.png', n)));
     hold off;
     
@@ -152,7 +159,7 @@ for idx = 1:length(n_vals)
     plot(f_plot_zoom, 20*log10(abs(H_butter_zoom)), 'r', 'LineWidth', 1.2);
     xlabel('Frequency (Hz)'); ylabel('Magnitude (dB)');
     title(sprintf('Butterworth vs FIR (Zoomed), n = %d', n)); legend('FIR','Butterworth'); grid on;
-    xlim([7000 9000]);
+    xlim([lower_cutoff-600 upper_cutoff+600]);
     saveas(gcf, fullfile(n_butter_dir, 'response_zoom.png'));
     hold off;
     
@@ -161,7 +168,7 @@ for idx = 1:length(n_vals)
     plot(f_plot_zoom, 20*log10(abs(H_cheby_zoom)), 'g', 'LineWidth', 1.2);
     xlabel('Frequency (Hz)'); ylabel('Magnitude (dB)');
     title(sprintf('Chebyshev vs FIR (Zoomed), n = %d', n)); legend('FIR','Chebyshev'); grid on;
-    xlim([7000 9000]);
+    xlim([lower_cutoff-600 upper_cutoff+600]);
     saveas(gcf, fullfile(n_cheby_dir, 'response_zoom.png'));
     hold off;
     
@@ -170,7 +177,7 @@ for idx = 1:length(n_vals)
     plot(f_plot_zoom, 20*log10(abs(H_ellip_zoom)), 'm', 'LineWidth', 1.2);
     xlabel('Frequency (Hz)'); ylabel('Magnitude (dB)');
     title(sprintf('Elliptic vs FIR (Zoomed), n = %d', n)); legend('FIR','Elliptic'); grid on;
-    xlim([7000 9000]);
+    xlim([lower_cutoff-600 upper_cutoff+600]);
     saveas(gcf, fullfile(n_ellip_dir, 'response_zoom.png'));
     hold off;
     
@@ -192,7 +199,8 @@ for idx = 1:length(n_vals)
     
     % --- Summary Table and Best n Tracking ---
     % Create a more focused frequency vector for accurate attenuation measurement
-    f_stop = lower_cutoff:(upper_cutoff-lower_cutoff)/100:upper_cutoff;
+    % Use a higher resolution sampling in the stopband
+    f_stop = linspace(lower_cutoff, upper_cutoff, 1000);
     w_stop = 2*pi*f_stop/fs;
     
     % Get frequency responses at the stopband frequencies
@@ -200,10 +208,15 @@ for idx = 1:length(n_vals)
     H_cheby_stop = freqz(b_cheby, a_cheby, w_stop, fs);
     H_ellip_stop = freqz(b_ellip, a_ellip, w_stop, fs);
     
-    % Calculate minimum stopband attenuation
-    min_att_butter = min(20*log10(abs(H_butter_stop)));
-    min_att_cheby = min(20*log10(abs(H_cheby_stop)));
-    min_att_ellip = min(20*log10(abs(H_ellip_stop)));
+    % Calculate minimum stopband attenuation - this should be a negative value!
+    % The more negative, the better the attenuation
+    [min_att_butter, min_idx_butter] = min(20*log10(abs(H_butter_stop)));
+    [min_att_cheby, min_idx_cheby] = min(20*log10(abs(H_cheby_stop)));
+    [min_att_ellip, min_idx_ellip] = min(20*log10(abs(H_ellip_stop)));
+    
+    % Print current attenuation values for debugging
+    fprintf('Order %d - Attenuation: Butter = %.2f dB at %.1f Hz, Cheby = %.2f dB at %.1f Hz, Ellip = %.2f dB at %.1f Hz\n', ...
+        n, min_att_butter, f_stop(min_idx_butter), min_att_cheby, f_stop(min_idx_cheby), min_att_ellip, f_stop(min_idx_ellip));
     
     summary_table = [summary_table; {'Butterworth', n, min_att_butter}];
     summary_table = [summary_table; {'Chebyshev', n, min_att_cheby}];
@@ -212,14 +225,15 @@ for idx = 1:length(n_vals)
     att_cheby_list(idx) = min_att_cheby;
     att_ellip_list(idx) = min_att_ellip;
     
-    % Track best n (lowest n with attenuation <= -40 dB)
-    if min_att_butter <= -40 && (isnan(best_butter.n) || n < best_butter.n)
+    % Track best n (lowest n with good attenuation)
+    % Track the filter with the deepest attenuation (most negative value)
+    if isnan(best_butter.n) || min_att_butter < best_butter.att
         best_butter.n = n; best_butter.att = min_att_butter;
     end
-    if min_att_cheby <= -40 && (isnan(best_cheby.n) || n < best_cheby.n)
+    if isnan(best_cheby.n) || min_att_cheby < best_cheby.att
         best_cheby.n = n; best_cheby.att = min_att_cheby;
     end
-    if min_att_ellip <= -40 && (isnan(best_ellip.n) || n < best_ellip.n)
+    if isnan(best_ellip.n) || min_att_ellip < best_ellip.att
         best_ellip.n = n; best_ellip.att = min_att_ellip;
     end
 end
@@ -241,7 +255,68 @@ plot(n_list, att_ellip_list, 'm-o', 'LineWidth', 1.2);
 ylabel('Min Stopband Attenuation (dB)'); xlabel('Filter Order n');
 title('Stopband Attenuation vs Filter Order');
 legend('Butterworth','Chebyshev','Elliptic'); grid on;
+ylim([-80, 0]); % Set a reasonable y-axis limit to see differences
 saveas(gcf, fullfile(base_dir, 'attenuation_vs_n.png'));
+
+% Create a special visualization for higher orders
+high_orders = [10, 15, 20];
+for i = 1:length(high_orders)
+    n_high = high_orders(i);
+    idx = find(n_vals == n_high);
+    if isempty(idx)
+        continue;
+    end
+    
+    % Design filters for this specific high order
+    [b_butter_high, a_butter_high] = butter(n_high, Wn, 'stop');
+    [b_cheby_high, a_cheby_high] = cheby1(n_high, Rp, Wn, 'stop');
+    [b_ellip_high, a_ellip_high] = ellip(n_high, Rp, Rs, Wn, 'stop');
+    
+    % Create a detailed frequency vector
+    f_detail = linspace(lower_cutoff-800, upper_cutoff+800, 2000);
+    w_detail = 2*pi*f_detail/fs;
+    
+    % Get responses
+    H_fir_detail = freqz(b_fir, 1, w_detail, fs);
+    H_butter_detail = freqz(b_butter_high, a_butter_high, w_detail, fs);
+    H_cheby_detail = freqz(b_cheby_high, a_cheby_high, w_detail, fs);
+    H_ellip_detail = freqz(b_ellip_high, a_ellip_high, w_detail, fs);
+    
+    % Create a detailed comparison plot
+    figure('Position', [100, 100, 800, 600]);
+    plot(f_detail, 20*log10(abs(H_fir_detail)), 'b', 'LineWidth', 1.5); hold on;
+    plot(f_detail, 20*log10(abs(H_butter_detail)), 'r', 'LineWidth', 1.5);
+    plot(f_detail, 20*log10(abs(H_cheby_detail)), 'g', 'LineWidth', 1.5);
+    plot(f_detail, 20*log10(abs(H_ellip_detail)), 'm', 'LineWidth', 1.5);
+    
+    % Add vertical lines for stopband edges
+    line([lower_cutoff lower_cutoff], ylim, 'Color', 'k', 'LineStyle', '--');
+    line([upper_cutoff upper_cutoff], ylim, 'Color', 'k', 'LineStyle', '--');
+    
+    % Annotate the depth points
+    [min_butter_val, min_butter_idx] = min(20*log10(abs(H_butter_detail)));
+    [min_cheby_val, min_cheby_idx] = min(20*log10(abs(H_cheby_detail)));
+    [min_ellip_val, min_ellip_idx] = min(20*log10(abs(H_ellip_detail)));
+    
+    plot(f_detail(min_butter_idx), min_butter_val, 'ro', 'MarkerSize', 8, 'MarkerFaceColor', 'r');
+    text(f_detail(min_butter_idx)+50, min_butter_val, sprintf('%.1f dB', min_butter_val), 'Color', 'r');
+    
+    plot(f_detail(min_cheby_idx), min_cheby_val, 'go', 'MarkerSize', 8, 'MarkerFaceColor', 'g');
+    text(f_detail(min_cheby_idx)+50, min_cheby_val, sprintf('%.1f dB', min_cheby_val), 'Color', 'g');
+    
+    plot(f_detail(min_ellip_idx), min_ellip_val, 'mo', 'MarkerSize', 8, 'MarkerFaceColor', 'm');
+    text(f_detail(min_ellip_idx)+50, min_ellip_val, sprintf('%.1f dB', min_ellip_val), 'Color', 'm');
+    
+    % Format the plot
+    xlabel('Frequency (Hz)'); ylabel('Magnitude (dB)');
+    title(sprintf('Detailed Frequency Response, n = %d', n_high));
+    legend('FIR (n=256)','Butterworth','Chebyshev','Elliptic', 'Location', 'southeast');
+    grid on;
+    ylim([-60, 5]);
+    
+    % Save the figure
+    saveas(gcf, fullfile(base_dir, sprintf('detailed_n%d.png', n_high)));
+end
 
 % --- Print best n for each filter ---
 fprintf('\nBest n for Butterworth: n = %d (attenuation = %.2f dB)\n', best_butter.n, best_butter.att);
