@@ -1,6 +1,8 @@
 function decompress()
-    % Add functions from utils.m
-    addpath('./');
+    % Add helper directories to path
+    addpath('./helpers/');
+    addpath('./helpers/compression/');
+    addpath('./helpers/decompression/');
     
     % Constants (should match compression)
     output_dir = './decompressed/';

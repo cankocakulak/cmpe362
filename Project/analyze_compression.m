@@ -1,6 +1,9 @@
 function analyze_compression()
-    % Add functions from utils.m
-    addpath('./');
+    % Add helper directories to path
+    addpath('./helpers/');
+    addpath('./helpers/compression/');
+    addpath('./helpers/decompression/');
+    addpath('./helpers/analysis/');
     
     % Analyze compression performance for different GOP sizes
     
