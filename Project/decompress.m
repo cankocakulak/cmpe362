@@ -67,12 +67,8 @@ function decompress()
                 end
                 
                 % RLE decode
-                channel_encoded = {rle_data};
-                channel_vector = rle_decode(channel_encoded, 64);
-                
-                % Reconstruct zigzag vector
                 zigzag_vector = zeros(64, 3);
-                zigzag_vector(:, c) = channel_vector(:, 1);
+                zigzag_vector(:, c) = rle_decode_single(rle_data, 64);
                 
                 if c == 3
                     % Inverse zigzag scan
