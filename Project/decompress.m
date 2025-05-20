@@ -4,6 +4,9 @@ function decompress()
     addpath('./helpers/compression/');
     addpath('./helpers/decompression/');
     
+    % Load configuration
+    cfg = config();
+    
     % Constants (should match compression)
     output_dir = './decompressed/';
     input_file = 'result.bin';
@@ -150,11 +153,11 @@ function decompress()
                 % Apply error correction to avoid drift and saturation
                 decoded_mb = max(0, min(255, decoded_mb));
                 
-                % Apply custom filtering for P-frames to reduce artifacts (only if needed)
-                if frame_idx > 2 && ~is_iframe
+                % Apply custom filtering for P-frames if configured
+                if cfg.USE_MEDIAN_FILTER && frame_idx > cfg.ENHANCE_AFTER_FRAME
                     % Apply simple filtering to each channel to reduce noise
                     for c = 1:3
-                        decoded_mb(:,:,c) = custom_median_filter(decoded_mb(:,:,c), [3 3]);
+                        decoded_mb(:,:,c) = custom_median_filter(decoded_mb(:,:,c), cfg.MEDIAN_FILTER_SIZE);
                     end
                 end
             end
@@ -169,8 +172,8 @@ function decompress()
         % Ensure values are in valid range (0-255)
         current_frame = max(0, min(255, current_frame));
         
-        % For P-frames after frame 2, apply additional processing to improve quality
-        if ~is_iframe && frame_idx > 2
+        % For P-frames, apply additional processing if configured
+        if ~is_iframe && cfg.USE_SHARPENING && frame_idx > cfg.ENHANCE_AFTER_FRAME
             % Simple sharpening by adding weighted high-pass filtered version
             for c = 1:3
                 channel = current_frame(:,:,c);
@@ -182,7 +185,7 @@ function decompress()
                     end
                 end
                 % Add a scaled version of the Laplacian to enhance edges
-                current_frame(:,:,c) = channel + 0.5*laplacian;
+                current_frame(:,:,c) = channel + cfg.SHARPENING_STRENGTH * laplacian;
             end
             
             % Ensure values are in valid range again after filtering

@@ -4,10 +4,8 @@ function compress()
     addpath('./helpers/compression/');
     addpath('./helpers/decompression/');
     
-    % Constants
-    GOP_SIZE = 2;     % Reduced GOP size to 2 (was 3) - more frequent I-frames
-    RESIDUAL_THRESHOLD = 0;  % Disabled threshold to preserve all details (was 1)
-    TEST_MODE = false;  % Set to true for testing with fewer frames
+    % Load configuration
+    cfg = config();
     
     % Setup
     input_dir = './video_data/';
@@ -20,9 +18,9 @@ function compress()
     frame_files = dir(fullfile(input_dir, 'frame*.jpg'));
     total_frames = length(frame_files);
     
-    % For testing, use only first 15 frames
-    if TEST_MODE
-        total_frames = min(15, total_frames);
+    % For testing, use only a limited number of frames
+    if cfg.TEST_MODE
+        total_frames = min(cfg.TEST_FRAMES, total_frames);
         fprintf('TEST MODE: Using only %d frames\n', total_frames);
     end
     
@@ -40,7 +38,7 @@ function compress()
     fid = fopen(output_file, 'wb');
     
     % Write header
-    fwrite(fid, GOP_SIZE, 'uint32');
+    fwrite(fid, cfg.GOP_SIZE, 'uint32');
     fwrite(fid, total_frames, 'uint32');
     
     % Sample a frame to get dimensions
@@ -65,10 +63,10 @@ function compress()
         [mb_rows, mb_cols] = size(mb_cells);
         
         % Determine frame type
-        is_iframe = is_i_frame(frame_idx, GOP_SIZE);
+        is_iframe = is_i_frame(frame_idx, cfg.GOP_SIZE);
         
-        % Force specific frames to be I-frames (especially the problematic 3rd frame)
-        if frame_idx == 3 || frame_idx == 5 || frame_idx == 7 || frame_idx == 9
+        % Force specific frames to be I-frames if needed
+        if ismember(frame_idx, cfg.FORCE_I_FRAMES)
             is_iframe = 1;
             fprintf('Forcing frame %d to be an I-frame for better quality\n', frame_idx);
         end
@@ -98,7 +96,7 @@ function compress()
                     
                     % Apply threshold to residuals (more selective thresholding)
                     % Only zero out very small values to preserve more detail
-                    residual(abs(residual) < RESIDUAL_THRESHOLD) = 0;
+                    residual(abs(residual) < cfg.RESIDUAL_THRESHOLD) = 0;
                     current_mb = residual;
                     
                     % Debug for first block to verify residual calculation
