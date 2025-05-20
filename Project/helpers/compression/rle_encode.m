@@ -6,23 +6,36 @@ function encoded = rle_encode(vector)
         channel_vector = vector(:, c);
         channel_encoded = [];
         
-        % Optimize for cases with many zeros
         i = 1;
         while i <= length(channel_vector)
             current_val = channel_vector(i);
             
-            % Count run length
-            run_length = 1;
-            while i + run_length <= length(channel_vector) && channel_vector(i + run_length) == current_val
-                run_length = run_length + 1;
+            % Special handling for zero runs
+            if current_val == 0
+                % Count consecutive zeros
+                run_length = 0;
+                while i + run_length <= length(channel_vector) && channel_vector(i + run_length) == 0
+                    run_length = run_length + 1;
+                end
+                
+                % Only store non-zero run lengths
+                if run_length > 0
+                    channel_encoded = [channel_encoded; run_length, 0];
+                end
+                
+                i = i + run_length;
+            else
+                % For non-zero values, store value and count consecutive same values
+                run_length = 1;
+                while i + run_length <= length(channel_vector) && ...
+                      channel_vector(i + run_length) == current_val && ...
+                      run_length < 255  % Cap run length for uint8 storage
+                    run_length = run_length + 1;
+                end
+                
+                channel_encoded = [channel_encoded; run_length, current_val];
+                i = i + run_length;
             end
-            
-            % Add to encoded data
-            % For long runs of zeros, this is particularly efficient
-            channel_encoded = [channel_encoded; run_length, current_val];
-            
-            % Move to next value
-            i = i + run_length;
         end
         
         % Further compression: if the tail is all zeros, we can just store the length

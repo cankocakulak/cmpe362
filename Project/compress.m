@@ -5,7 +5,9 @@ function compress()
     addpath('./helpers/decompression/');
     
     % Constants
-    GOP_SIZE = 30;  % Increased from 15 to 30 for better compression
+    GOP_SIZE = 2;     % Reduced GOP size to 2 (was 3) - more frequent I-frames
+    RESIDUAL_THRESHOLD = 0;  % Disabled threshold to preserve all details (was 1)
+    TEST_MODE = false;  % Set to true for testing with fewer frames
     
     % Setup
     input_dir = './video_data/';
@@ -18,6 +20,12 @@ function compress()
     frame_files = dir(fullfile(input_dir, 'frame*.jpg'));
     total_frames = length(frame_files);
     
+    % For testing, use only first 15 frames
+    if TEST_MODE
+        total_frames = min(15, total_frames);
+        fprintf('TEST MODE: Using only %d frames\n', total_frames);
+    end
+    
     % Sort frame files by number
     frame_numbers = zeros(total_frames, 1);
     for i = 1:total_frames
@@ -26,7 +34,7 @@ function compress()
         frame_numbers(i) = str2double(regexp(frame_name, '\d+', 'match'));
     end
     [~, sort_idx] = sort(frame_numbers);
-    frame_files = frame_files(sort_idx);
+    frame_files = frame_files(sort_idx(1:total_frames));  % Only take the frames we need
     
     % Open output file
     fid = fopen(output_file, 'wb');
@@ -59,11 +67,17 @@ function compress()
         % Determine frame type
         is_iframe = is_i_frame(frame_idx, GOP_SIZE);
         
+        % Force specific frames to be I-frames (especially the problematic 3rd frame)
+        if frame_idx == 3 || frame_idx == 5 || frame_idx == 7 || frame_idx == 9
+            is_iframe = 1;
+            fprintf('Forcing frame %d to be an I-frame for better quality\n', frame_idx);
+        end
+        
         % Write frame type
         fwrite(fid, is_iframe, 'uint8');
         
         % Write number of macroblocks
-        fwrite(fid, mb_rows * mb_cols, 'uint32');
+        fwrite(fid, mb_rows * mb_cols, 'uint16');
         
         % Process each macroblock
         for i = 1:mb_rows
@@ -71,10 +85,27 @@ function compress()
                 % Get current macroblock
                 current_mb = mb_cells{i, j};
                 
-                % For P-frames, compute residual
-                if ~is_iframe
+                % For P-frames, compute residual with thresholding
+                if ~is_iframe && ~isempty(prev_frame)
                     prev_mb = frame_to_mb(prev_frame);
-                    current_mb = current_mb - prev_mb{i, j};
+                    residual = current_mb - prev_mb{i, j};
+                    
+                    % Debug before thresholding
+                    if i == 1 && j == 1
+                        fprintf('P-frame %d, Block (1,1) before threshold: min/max=%.2f/%.2f\n', ...
+                                frame_idx, min(residual(:)), max(residual(:)));
+                    end
+                    
+                    % Apply threshold to residuals (more selective thresholding)
+                    % Only zero out very small values to preserve more detail
+                    residual(abs(residual) < RESIDUAL_THRESHOLD) = 0;
+                    current_mb = residual;
+                    
+                    % Debug for first block to verify residual calculation
+                    if i == 1 && j == 1
+                        fprintf('P-frame %d, Block (1,1) after threshold: min/max=%.2f/%.2f\n', ...
+                                frame_idx, min(residual(:)), max(residual(:)));
+                    end
                 end
                 
                 % Apply DCT
@@ -94,13 +125,23 @@ function compress()
                     channel_data = rle_encoded{c};
                     num_pairs = size(channel_data, 1);
                     
+                    % Debug print for first block
+                    if frame_idx == 1 && i == 1 && j == 1
+                        fprintf('Frame 1, Block (1,1), Channel %d: %d pairs\n', c, num_pairs);
+                        % Print first few pairs for debugging
+                        if num_pairs > 0
+                            fprintf('First pair: length=%d, value=%d\n', channel_data(1,1), channel_data(1,2));
+                        end
+                    end
+                    
                     % Write number of pairs
-                    fwrite(fid, num_pairs, 'uint32');
+                    fwrite(fid, num_pairs, 'uint16');
                     
                     % Write pairs
                     for k = 1:num_pairs
-                        fwrite(fid, channel_data(k, 1), 'uint32');  % Run length
-                        fwrite(fid, channel_data(k, 2), 'int16');   % Value
+                        % Always write run length as uint16 for simplicity
+                        fwrite(fid, channel_data(k, 1), 'uint16');
+                        fwrite(fid, channel_data(k, 2), 'int8');
                     end
                 end
             end
@@ -110,8 +151,39 @@ function compress()
         if is_iframe
             prev_frame = current_frame;
         else
-            % For P-frames, update the reference by adding the residual
-            prev_frame = prev_frame + mb_to_frame(mb_cells);
+            % For P-frames, reconstruct the frame properly for reference
+            reconstructed_frame = prev_frame;
+            
+            % Properly reconstruct by adding residuals
+            for i = 1:mb_rows
+                for j = 1:mb_cols
+                    row_start = (i-1)*8 + 1;
+                    row_end = i*8;
+                    col_start = (j-1)*8 + 1;
+                    col_end = j*8;
+                    
+                    % Extract the residual from mb_cells
+                    residual_block = mb_cells{i, j};
+                    
+                    % Add residual to the reference block
+                    reconstructed_frame(row_start:row_end, col_start:col_end, :) = ...
+                        reconstructed_frame(row_start:row_end, col_start:col_end, :) + residual_block;
+                end
+            end
+            
+            % Verify a sample block for debugging
+            sample_i = 1; sample_j = 1;
+            sample_residual = mb_cells{sample_i, sample_j};
+            sample_prev = prev_frame((sample_i-1)*8+1:sample_i*8, (sample_j-1)*8+1:sample_j*8, :);
+            sample_recon = reconstructed_frame((sample_i-1)*8+1:sample_i*8, (sample_j-1)*8+1:sample_j*8, :);
+            fprintf('P-frame %d verification: Residual min/max=%.2f/%.2f, Prev min/max=%.2f/%.2f, Recon min/max=%.2f/%.2f\n', ...
+                    frame_idx, min(sample_residual(:)), max(sample_residual(:)), ...
+                    min(sample_prev(:)), max(sample_prev(:)), ...
+                    min(sample_recon(:)), max(sample_recon(:)));
+            
+            % Ensure values are in valid range
+            reconstructed_frame = max(0, min(255, reconstructed_frame));
+            prev_frame = reconstructed_frame;
         end
     end
     

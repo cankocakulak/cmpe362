@@ -1,6 +1,6 @@
 function block = inverse_zigzag(vector, block_size)
     if nargin < 2
-        block_size = [8, 8, 3];
+        block_size = [8, 8, 1];  % Default to single channel if not specified
     end
     
     % Define zigzag pattern for 8x8 block
@@ -18,13 +18,23 @@ function block = inverse_zigzag(vector, block_size)
     % Initialize result block
     block = zeros(block_size);
     
-    % Apply inverse zigzag scan for each color channel
-    for c = 1:block_size(3)
-        channel_vector = vector(:, c);
+    % Check if input is a vector or matrix
+    if size(vector, 2) == 1
+        % Single channel input
         for i = 1:64
             % Find position of i in zigzag pattern
             [row, col] = find(zigzag_pattern == i);
-            block(row, col, c) = channel_vector(i);
+            block(row, col) = vector(i);
+        end
+    else
+        % Multi-channel input (backward compatibility)
+        for c = 1:block_size(3)
+            channel_vector = vector(:, c);
+            for i = 1:64
+                % Find position of i in zigzag pattern
+                [row, col] = find(zigzag_pattern == i);
+                block(row, col, c) = channel_vector(i);
+            end
         end
     end
 end 

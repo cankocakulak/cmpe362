@@ -1,8 +1,16 @@
 function block = apply_idct(dct_block)
     % Apply inverse DCT for each color channel
     block = zeros(size(dct_block));
-    for c = 1:3
-        block(:,:,c) = custom_idct2(dct_block(:,:,c));
+    
+    % Check if input is single-channel or multi-channel
+    if ndims(dct_block) == 2 || size(dct_block, 3) == 1
+        % Single channel case
+        block = custom_idct2(dct_block);
+    else
+        % Multi-channel case
+        for c = 1:size(dct_block, 3)
+            block(:,:,c) = custom_idct2(dct_block(:,:,c));
+        end
     end
 end
 
