@@ -1,76 +1,79 @@
 function analyze_compression()
+    % Script to analyze compression ratio and PSNR for different GOP sizes
+    
     % Add helper directories to path
     addpath('./helpers/');
     addpath('./helpers/compression/');
     addpath('./helpers/decompression/');
-    addpath('./helpers/analysis/');
     
-    % Analyze compression performance for different GOP sizes
-    
-    % Parameters
-    gop_sizes = [1, 5, 10, 15, 20, 25, 30];
+    % Setup
     input_dir = './video_data/';
     output_dir = './decompressed/';
     
-    % Get list of original frames
-    orig_frames = dir(fullfile(input_dir, 'frame*.jpg'));
-    total_frames = length(orig_frames);
+    % Get list of frame files to calculate uncompressed size
+    frame_files = dir(fullfile(input_dir, 'frame*.jpg'));
+    total_frames = length(frame_files);
     
-    % Sort frame files by number
-    frame_numbers = zeros(total_frames, 1);
-    for i = 1:total_frames
-        frame_name = orig_frames(i).name;
-        frame_numbers(i) = str2double(regexp(frame_name, '\d+', 'match'));
-    end
-    [frame_numbers, sort_idx] = sort(frame_numbers);
-    orig_frames = orig_frames(sort_idx);
+    % Sample a frame to get dimensions
+    sample_frame = imread(fullfile(input_dir, frame_files(1).name));
+    [height, width, channels] = size(sample_frame);
     
-    % Prepare results storage
-    compression_ratios = zeros(length(gop_sizes), 1);
-    psnr_values = zeros(length(gop_sizes), total_frames);
+    % Calculate uncompressed size (in bits)
+    uncompressed_size = width * height * 3 * 8 * total_frames;  % 24 bits per pixel
+    fprintf('Uncompressed size: %.2f MB (%d bits)\n', uncompressed_size/(8*1024*1024), uncompressed_size);
     
-    % Uncompressed size (bits)
-    uncompressed_size = 480 * 360 * 24 * total_frames;
+    % GOP sizes to test
+    gop_sizes = [1, 2, 3, 5, 10, 15, 20, 30];
     
-    % Analyze each GOP size
-    for g = 1:length(gop_sizes)
-        gop_size = gop_sizes(g);
-        fprintf('\nAnalyzing GOP size %d\n', gop_size);
+    % Arrays to store results
+    compression_ratios = zeros(size(gop_sizes));
+    file_sizes_mb = zeros(size(gop_sizes));
+    
+    % PSNR analysis for specific GOP sizes
+    psnr_gop_sizes = [1, 15, 30];
+    psnr_values = cell(length(psnr_gop_sizes), 1);
+    
+    % Main analysis loop
+    for i = 1:length(gop_sizes)
+        gop_size = gop_sizes(i);
+        fprintf('\nAnalyzing GOP size %d...\n', gop_size);
         
-        % Update GOP size in compress.m
-        update_gop_size('compress.m', gop_size);
+        % Update configuration
+        cfg = config();
+        cfg.GOP_SIZE = gop_size;
+        cfg.TEST_MODE = false;  % Use all frames
+        cfg.FORCE_I_FRAMES = [];  % Don't force any I-frames
         
-        % Compress
+        % Save the updated configuration temporarily
+        save_config(cfg);
+        
+        % Run compression
         compress();
         
-        % Decompress
-        update_gop_size('decompress.m', gop_size);
-        decompress();
+        % Measure compressed file size
+        file_info = dir('result.bin');
+        compressed_size = file_info.bytes * 8;  % Convert bytes to bits
+        file_sizes_mb(i) = compressed_size / (8*1024*1024);  % Convert bits to MB
         
         % Calculate compression ratio
-        compressed_file = dir('result.bin');
-        compressed_size = compressed_file.bytes * 8;  % Convert to bits
-        compression_ratio = uncompressed_size / compressed_size;
-        compression_ratios(g) = compression_ratio;
+        compression_ratios(i) = uncompressed_size / compressed_size;
         
-        fprintf('Compression ratio: %.2f\n', compression_ratio);
-        
-        % Calculate PSNR for each frame
-        for i = 1:total_frames
-            % Read original frame
-            orig_path = fullfile(input_dir, orig_frames(i).name);
-            orig_frame = imread(orig_path);
-            
-            % Read decompressed frame
-            decomp_path = fullfile(output_dir, sprintf('frame%03d.jpg', i));
-            decomp_frame = imread(decomp_path);
+        % For specific GOP sizes, calculate PSNR
+        if ismember(gop_size, psnr_gop_sizes)
+            % Run decompression
+            decompress();
             
             % Calculate PSNR
-            psnr_values(g, i) = calculate_psnr(orig_frame, decomp_frame);
+            psnr_idx = find(psnr_gop_sizes == gop_size);
+            psnr_values{psnr_idx} = calculate_psnr(input_dir, output_dir, total_frames);
+            
+            % Save PSNR results to file
+            save(sprintf('psnr_gop_%d.mat', gop_size), 'psnr_values');
         end
-        
-        fprintf('Average PSNR: %.2f dB\n', mean(psnr_values(g, :)));
     end
+    
+    % Save compression ratio results
+    save('compression_results.mat', 'gop_sizes', 'compression_ratios', 'file_sizes_mb');
     
     % Plot compression ratio vs GOP size
     figure;
@@ -79,45 +82,100 @@ function analyze_compression()
     xlabel('GOP Size');
     ylabel('Compression Ratio');
     grid on;
-    saveas(gcf, 'compression_ratio.png');
+    saveas(gcf, 'compression_ratio_plot.png');
     
-    % Plot PSNR for selected GOP sizes
+    % Plot PSNR curves
     figure;
-    hold on;
-    
-    % Choose 3 GOP sizes to plot (1, 15, 30)
-    plot_indices = [1, find(gop_sizes == 15), find(gop_sizes == 30)];
     colors = {'r', 'g', 'b'};
+    legends = {};
     
-    for i = 1:length(plot_indices)
-        idx = plot_indices(i);
-        if ~isempty(idx)
-            plot(1:total_frames, psnr_values(idx, :), colors{i}, 'LineWidth', 2);
-        end
+    hold on;
+    for i = 1:length(psnr_gop_sizes)
+        plot(1:length(psnr_values{i}), psnr_values{i}, [colors{i}, '-o'], 'LineWidth', 2);
+        legends{i} = sprintf('GOP = %d', psnr_gop_sizes(i));
     end
+    hold off;
     
-    title('PSNR vs Frame Number');
+    title('PSNR vs Frame Number for Different GOP Sizes');
     xlabel('Frame Number');
     ylabel('PSNR (dB)');
-    legend({'GOP=1', 'GOP=15', 'GOP=30'});
+    legend(legends);
     grid on;
-    saveas(gcf, 'psnr.png');
+    saveas(gcf, 'psnr_plot.png');
+    
+    % Restore original configuration
+    cfg = config();
+    save_config(cfg);
+    
+    % Print results
+    fprintf('\nCompression Analysis Results:\n');
+    fprintf('----------------------------\n');
+    fprintf('GOP Size | Compression Ratio | File Size (MB)\n');
+    for i = 1:length(gop_sizes)
+        fprintf('%7d | %18.2f | %13.2f\n', gop_sizes(i), compression_ratios(i), file_sizes_mb(i));
+    end
 end
 
-% Helper function to update GOP size in a file
-function update_gop_size(filename, gop_size)
-    % Read file content
-    fid = fopen(filename, 'r');
-    content = fread(fid, '*char')';
+function save_config(cfg)
+    % Create a temporary function to save the updated configuration
+    fid = fopen('temp_config.m', 'w');
+    
+    fprintf(fid, 'function params = temp_config()\n');
+    fprintf(fid, '    params.GOP_SIZE = %d;\n', cfg.GOP_SIZE);
+    fprintf(fid, '    params.RESIDUAL_THRESHOLD = %d;\n', cfg.RESIDUAL_THRESHOLD);
+    fprintf(fid, '    params.TEST_MODE = %d;\n', cfg.TEST_MODE);
+    fprintf(fid, '    params.TEST_FRAMES = %d;\n', cfg.TEST_FRAMES);
+    fprintf(fid, '    params.QUALITY_FACTOR = %.1f;\n', cfg.QUALITY_FACTOR);
+    fprintf(fid, '    params.FREQ_WEIGHT_FACTOR = %.1f;\n', cfg.FREQ_WEIGHT_FACTOR);
+    fprintf(fid, '    params.DC_SCALE_FACTOR = %.1f;\n', cfg.DC_SCALE_FACTOR);
+    fprintf(fid, '    params.DC_BLOCK_SIZE = %d;\n', cfg.DC_BLOCK_SIZE);
+    fprintf(fid, '    params.USE_MEDIAN_FILTER = %d;\n', cfg.USE_MEDIAN_FILTER);
+    fprintf(fid, '    params.MEDIAN_FILTER_SIZE = [%d, %d];\n', ...
+        cfg.MEDIAN_FILTER_SIZE(1), cfg.MEDIAN_FILTER_SIZE(2));
+    fprintf(fid, '    params.USE_SHARPENING = %d;\n', cfg.USE_SHARPENING);
+    fprintf(fid, '    params.SHARPENING_STRENGTH = %.1f;\n', cfg.SHARPENING_STRENGTH);
+    fprintf(fid, '    params.ENHANCE_AFTER_FRAME = %d;\n', cfg.ENHANCE_AFTER_FRAME);
+    
+    % Handle force I-frames (could be empty)
+    if isempty(cfg.FORCE_I_FRAMES)
+        fprintf(fid, '    params.FORCE_I_FRAMES = [];\n');
+    else
+        fprintf(fid, '    params.FORCE_I_FRAMES = [');
+        fprintf(fid, '%d,', cfg.FORCE_I_FRAMES(1:end-1));
+        fprintf(fid, '%d];\n', cfg.FORCE_I_FRAMES(end));
+    end
+    
+    fprintf(fid, 'end\n');
     fclose(fid);
     
-    % Update GOP_SIZE
-    pattern = 'GOP_SIZE\s*=\s*\d+';
-    replacement = sprintf('GOP_SIZE = %d', gop_size);
-    content = regexprep(content, pattern, replacement);
+    % Rename to override the config.m file temporarily
+    movefile('temp_config.m', 'config.m', 'f');
+end
+
+function psnr_values = calculate_psnr(original_dir, decompressed_dir, num_frames)
+    % Calculate PSNR for each frame
+    psnr_values = zeros(num_frames, 1);
     
-    % Write updated content
-    fid = fopen(filename, 'w');
-    fwrite(fid, content);
-    fclose(fid);
+    for frame_idx = 1:num_frames
+        % Read original frame
+        original_path = fullfile(original_dir, sprintf('frame%03d.jpg', frame_idx));
+        original = double(imread(original_path));
+        
+        % Read decompressed frame
+        decompressed_path = fullfile(decompressed_dir, sprintf('frame%03d.jpg', frame_idx));
+        decompressed = double(imread(decompressed_path));
+        
+        % Calculate MSE
+        mse = mean((original(:) - decompressed(:)).^2);
+        
+        % Calculate PSNR
+        if mse == 0
+            psnr_values(frame_idx) = 100;  % Arbitrary high value for perfect match
+        else
+            max_pixel = 255.0;
+            psnr_values(frame_idx) = 20 * log10(max_pixel / sqrt(mse));
+        end
+        
+        fprintf('Frame %d, PSNR: %.2f dB\n', frame_idx, psnr_values(frame_idx));
+    end
 end 
