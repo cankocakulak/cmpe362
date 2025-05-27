@@ -22,18 +22,18 @@ function params = config()
     %         3-5 = balanced (removes noise, keeps structure)
     %         10+ = aggressive filtering (smallest P-frames, potential artifacts)
     % NOTE: Higher values improve compression but may cause detail loss
-    params.RESIDUAL_THRESHOLD = 3;  % Increased from 0 for better P-frame compression
+    params.RESIDUAL_THRESHOLD = 0;  % Keep all details in residuals
     
     % Test mode: Process limited frames for faster testing
     % RANGE: true (1) or false (0)
     % EFFECT: true = process only TEST_FRAMES number of frames
     %         false = process all frames in directory
-    params.TEST_MODE = true;
+    params.TEST_MODE = false;
     
     % Number of frames to process in test mode
     % RANGE: 1 to total frame count (integer)
     % EFFECT: Only used when TEST_MODE = true
-    params.TEST_FRAMES = 30;
+    params.TEST_FRAMES = 5;
     
     % Force specific frames to be I-frames
     % RANGE: Array of frame indices [1,3,5,...]
@@ -49,26 +49,26 @@ function params = config()
     % EFFECT: Lower = better quality, larger files (0.5-2.0 is high quality)
     %         Higher = lower quality, smaller files (5.0+ is aggressive compression)
     % NOTE: This is the main quality control parameter
-    params.QUALITY_FACTOR = 3.5;  % Increased for better compression
+    params.QUALITY_FACTOR = 0.8;  % Much lower for high quality
     
     % Frequency weighting factor for quantization
     % RANGE: 0.1 to 2.0 (float)
     % EFFECT: Controls how aggressively high frequencies are compressed
     %         Lower = preserve more high-frequency detail
     %         Higher = more aggressive compression of high frequencies
-    params.FREQ_WEIGHT_FACTOR = 0.7;
+    params.FREQ_WEIGHT_FACTOR = 0.2;  % Reduced significantly to preserve details
     
     % Special weighting for low-frequency (DC) components
     % RANGE: 0.1 to 1.0 (float)
     % EFFECT: Lower = better preserve important low frequencies
     %         Higher = more compression even in visually critical areas
-    params.DC_SCALE_FACTOR = 0.6;
+    params.DC_SCALE_FACTOR = 0.8;  % Increased to maintain DC component fidelity
     
     % Size of low-frequency block to receive special treatment
     % RANGE: 1 to 8 (integer)
     % EFFECT: Controls how many low-frequency coefficients get special treatment
     %         Higher values preserve more of the basic structure
-    params.DC_BLOCK_SIZE = 3;
+    params.DC_BLOCK_SIZE = 3;  % Back to original value
     
     % ======== P-Frame Parameters ========
     
@@ -78,20 +78,20 @@ function params = config()
     %         1.0 = same quantization as I-frames
     %         >1.0 = more aggressive quantization for P-frames
     % NOTE: Higher values create smaller P-frames but lower quality
-    params.P_FRAME_QUANT_BOOST = 1.3;  % New parameter
+    params.P_FRAME_QUANT_BOOST = 1.0;  % No extra quantization for P-frames
     
     % P-frame zero run enhancement
     % RANGE: true (1) or false (0)
     % EFFECT: When true, tries to create longer runs of zeros in P-frames
     %         to improve compression efficiency 
-    params.ENHANCE_P_FRAME_ZEROS = true;  % New parameter
+    params.ENHANCE_P_FRAME_ZEROS = false;  % Disable zero run enhancement
     
     % Maximum P-frames before refresh
     % RANGE: 1 to GOP_SIZE-1 (integer)
     % EFFECT: Forces an I-frame after this many P-frames, even within a GOP
     %         to prevent quality degradation
     % NOTE: Set to GOP_SIZE-1 to disable (normal GOP behavior)
-    params.MAX_P_FRAMES_BEFORE_REFRESH = 4;  % New parameter
+    params.MAX_P_FRAMES_BEFORE_REFRESH = 5;  % More frequent refresh
     
     % ======== Enhancement Parameters ========
     
@@ -99,7 +99,7 @@ function params = config()
     % RANGE: true (1) or false (0)
     % EFFECT: Smooths out noise in P-frames
     %         Can help with compression but may reduce details
-    params.USE_MEDIAN_FILTER = true;
+    params.USE_MEDIAN_FILTER = false;  % Disable filtering to preserve details
     
     % Median filter window size
     % RANGE: [odd_number, odd_number], typically [3,3] or [5,5]
@@ -110,7 +110,7 @@ function params = config()
     % RANGE: true (1) or false (0)
     % EFFECT: Enhances edges after decompression
     %         Can improve perceived quality but may amplify artifacts
-    params.USE_SHARPENING = false;
+    params.USE_SHARPENING = false;  % Disable sharpening
     
     % Sharpening strength
     % RANGE: 0.1 to 1.0 (float)

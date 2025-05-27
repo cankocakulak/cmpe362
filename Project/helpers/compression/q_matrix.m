@@ -14,24 +14,8 @@ function q_matrix = q_matrix()
         72  92  95  98  112 100 103 99
     ];
     
-    % Apply quality factor from config
-    quality_factor = cfg.QUALITY_FACTOR;
-    
-    % Adjust frequency weighting based on config
-    [h, w] = size(base_matrix);
-    freq_weight = ones(h, w);
-    for i = 1:h
-        for j = 1:w
-            % Distance-based weighting according to config
-            dc_dist = sqrt((i-1)^2 + (j-1)^2) / sqrt(2*(h-1)^2);
-            freq_weight(i,j) = 1 + dc_dist * cfg.FREQ_WEIGHT_FACTOR;
-        end
-    end
-    
-    % Apply both quality factor and frequency weighting
-    q_matrix = base_matrix .* freq_weight * quality_factor;
-    
-    % Apply special treatment to DC and low-frequency components
-    block_size = cfg.DC_BLOCK_SIZE;
-    q_matrix(1:block_size, 1:block_size) = q_matrix(1:block_size, 1:block_size) * cfg.DC_SCALE_FACTOR;
+    % Apply a simple quality scaling
+    % For quality focus, use a factor slightly less than 1
+    % to preserve more detail
+    q_matrix = base_matrix * 0.9;  % Minimal scaling for high quality
 end 
