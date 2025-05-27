@@ -33,19 +33,25 @@ function analyze_compression()
     psnr_gop_sizes = [1, 15, 30];
     psnr_values = cell(length(psnr_gop_sizes), 1);
     
+    % Save original config
+    orig_config = config();
+    
     % Main analysis loop
     for i = 1:length(gop_sizes)
         gop_size = gop_sizes(i);
         fprintf('\nAnalyzing GOP size %d...\n', gop_size);
         
-        % Update configuration
-        cfg = config();
+        % Create new config with current GOP size
+        cfg = orig_config;
         cfg.GOP_SIZE = gop_size;
         cfg.TEST_MODE = false;  % Use all frames
         cfg.FORCE_I_FRAMES = [];  % Don't force any I-frames
         
-        % Save the updated configuration temporarily
+        % Save the updated configuration
         save_config(cfg);
+        
+        % Clear any cached config
+        clear('config');
         
         % Run compression
         compress();
@@ -70,6 +76,9 @@ function analyze_compression()
             % Save PSNR results to file
             save(sprintf('psnr_gop_%d.mat', gop_size), 'psnr_values');
         end
+        
+        % Clear the cached config again before next iteration
+        clear('config');
     end
     
     % Save compression ratio results
@@ -104,8 +113,7 @@ function analyze_compression()
     saveas(gcf, 'psnr_plot.png');
     
     % Restore original configuration
-    cfg = config();
-    save_config(cfg);
+    save_config(orig_config);
     
     % Print results
     fprintf('\nCompression Analysis Results:\n');
@@ -118,9 +126,9 @@ end
 
 function save_config(cfg)
     % Create a temporary function to save the updated configuration
-    fid = fopen('temp_config.m', 'w');
+    fid = fopen('config.m', 'w');
     
-    fprintf(fid, 'function params = temp_config()\n');
+    fprintf(fid, 'function params = config()\n');  % Changed function name to match file
     fprintf(fid, '    params.GOP_SIZE = %d;\n', cfg.GOP_SIZE);
     fprintf(fid, '    params.RESIDUAL_THRESHOLD = %d;\n', cfg.RESIDUAL_THRESHOLD);
     fprintf(fid, '    params.TEST_MODE = %d;\n', cfg.TEST_MODE);
@@ -147,9 +155,6 @@ function save_config(cfg)
     
     fprintf(fid, 'end\n');
     fclose(fid);
-    
-    % Rename to override the config.m file temporarily
-    movefile('temp_config.m', 'config.m', 'f');
 end
 
 function psnr_values = calculate_psnr(original_dir, decompressed_dir, num_frames)
