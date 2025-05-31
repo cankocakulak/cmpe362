@@ -108,7 +108,7 @@ function compress()
                     if i == 1 && j == 1
                         fprintf('Residual before threshold - Min: %.2f, Max: %.2f\n', ...
                                 min(residual(:)), max(residual(:)));
-                        
+                    
                         % Print a small section of the residual for visualization
                         fprintf('Sample residual values (top-left corner):\n');
                         disp(residual(1:4, 1:4, 1));  % Show red channel
