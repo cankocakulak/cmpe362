@@ -23,7 +23,7 @@ function analyze_compression()
     fprintf('Uncompressed size: %.2f MB (%d bits)\n', uncompressed_size/(8*1024*1024), uncompressed_size);
     
     % GOP sizes to test
-    gop_sizes = [1, 2, 3, 5, 10, 15, 20, 30];
+    gop_sizes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30];
     
     % Arrays to store results
     compression_ratios = zeros(size(gop_sizes));
