@@ -1,39 +1,45 @@
 # Video Compression Implementation
 
-This directory contains the implementation of a simple video compression algorithm in MATLAB. The algorithm is based on techniques similar to MPEG-4/H264, using I-frames and P-frames organized in a Group of Pictures (GOP) structure.
+This directory contains two implementations of a video compression algorithm in MATLAB:
+1. A basic implementation using I-frames and P-frames
+2. An improved version with motion estimation and optimized quantization
 
 ## How to Run
 
-### Compression
+### Basic Implementation
 ```matlab
->> compress
+>> compress                  % Compress video using basic implementation
+>> decompress               % Decompress using basic implementation
 ```
-This will:
-1. Load video frames from the `video_data/` directory
-2. Apply DCT, quantization, zigzag scanning, and RLE compression
-3. Save the compressed data to `result.bin`
 
-### Decompression
+### Improved Implementation
 ```matlab
->> decompress
+>> improved_compress        % Compress video using motion estimation
+>> improved_decompress     % Decompress using improved implementation
 ```
-This will:
-1. Read the compressed data from `result.bin`
-2. Perform the decompression process
-3. Save the reconstructed frames to the `decompressed/` directory
 
 ### Analysis
 ```matlab
->> analyze_compression
+>> analyze_compression     % Analyzes both implementations:
+                         % - Compression ratios for different GOP sizes
+                         % - PSNR comparison
+                         % - Generates comparative plots
 ```
-This will:
-1. Test different GOP sizes (1, 5, 10, 15, 20, 25, 30)
-2. Calculate compression ratios and PSNR values
-3. Generate plots comparing the performance
 
 ## Implementation Details
 
-### Key Components
+### Basic Implementation
+- Uses simple P-frame prediction (co-located blocks)
+- Quantization factor: 5.0x
+- Standard entropy coding with RLE
+
+### Improved Implementation
+- Motion estimation with 7-pixel search range
+- More aggressive quantization (8.0x)
+- Optimized for better compression while maintaining quality
+- Faster decompression due to simplified entropy coding
+
+### Key Components (Both Versions)
 
 1. **Macroblocks (8x8)**: All processing is done on 8x8 pixel blocks
 2. **DCT Transform**: Converts pixels to frequency domain
@@ -49,45 +55,68 @@ This will:
    - Serve as reference points
 
 2. **P-frames (Predicted)**: 
-   - Encode only differences from previous frame
+   - Basic: Uses co-located blocks for prediction
+   - Improved: Uses motion estimation to find best matching blocks
    - Much smaller than I-frames
-   - Depend on previous frames for reconstruction
-
-### GOP Structure
-
-The Group of Pictures (GOP) structure defines how many P-frames follow each I-frame. A larger GOP size typically results in better compression but may reduce random access capability and error resilience.
 
 ## Tuning Parameters
 
-1. **GOP Size**: Modify the `GOP_SIZE` variable in `compress.m`
-   - Smaller values (e.g., 1): Higher quality, larger file size
-   - Larger values (e.g., 30): Lower quality, smaller file size
+1. **Global Configuration**: Modify `config.m` to change common parameters
+   - GOP size
+   - Frame dimensions
+   - Macroblock size
+   - Other shared configuration values
 
-2. **Quantization Matrix**: Modify `q_matrix.m` in the helpers directory
-   - More aggressive quantization = higher compression, lower quality
-   - Less aggressive quantization = lower compression, higher quality
+2. **GOP Size**: Modify in respective compression scripts
+   - Recommended range: 1-30
+   - Larger values = better compression but potential quality impact
+   - Analysis shows diminishing returns after GOP size 15-20
+
+3. **Quantization Settings**:
+   - Basic: Modify `q_matrix.m`
+   - Improved: Modify `q_matrix_improved.m`
+   - Current settings:
+     * Basic: 5.0x quantization factor
+     * Improved: 8.0x quantization factor (enabled by better motion prediction)
+
+4. **Motion Search Range** (Improved version only):
+   - Set in `improved_compress.m`
+   - Default: 7 pixels
+   - Larger values may improve quality but increase compression time
+
+## Performance Characteristics
+
+1. **Compression Ratio**:
+   - Basic: ~3:1 (GOP=1) to ~8.5:1 (GOP=30)
+   - Improved: ~4.5:1 (GOP=1) to ~9.7:1 (GOP=30)
+
+2. **PSNR Quality**:
+   - Basic: ~34-34.5 dB
+   - Improved: ~26-26.7 dB (lower due to aggressive quantization)
 
 ## Directory Structure
 
 ```
-.                               # Project root
-├── compress.m                  # Main compression script
-├── decompress.m                # Main decompression script
-├── analyze_compression.m       # Performance analysis script
-├── frame_to_mb.m               # Converts frames to macroblocks
-├── mb_to_frame.m               # Converts macroblocks to frames
-├── helpers/                    # Helper functions
-│   ├── compression/            # Compression functions
-│   ├── decompression/          # Decompression functions
-│   ├── analysis/               # Analysis functions
-│   └── q_matrix.m              # Quantization matrix
-├── video_data/                 # Input video frames
-└── decompressed/               # Output frames
+.
+├── compress.m                  # Basic compression
+├── decompress.m               # Basic decompression
+├── improved_compress.m        # Improved compression with motion estimation
+├── improved_decompress.m     # Improved decompression
+├── analyze_compression.m     # Analysis script for both implementations
+├── helpers/
+│   ├── compression/
+│   ├── decompression/
+│   ├── analysis/
+│   ├── q_matrix.m            # Basic quantization
+│   └── q_matrix_improved.m   # Improved quantization
+├── video_data/               # Input frames
+├── decompressed/            # Output frames (basic)
+└── decompressed_improved/   # Output frames (improved)
 ```
 
 ## Troubleshooting
 
-1. **Path Issues**: Ensure MATLAB can find all required functions by checking:
+1. **Path Issues**: Ensure MATLAB can find all functions:
    ```matlab
    >> addpath('./helpers/');
    >> addpath('./helpers/compression/');
@@ -95,9 +124,12 @@ The Group of Pictures (GOP) structure defines how many P-frames follow each I-fr
    >> addpath('./helpers/analysis/');
    ```
 
-2. **Memory Issues**: For large videos, use a smaller subset of frames or reduce GOP size
+2. **Memory Issues**: 
+   - For large videos, use smaller frame subset
+   - Reduce motion search range in improved version
+   - Reduce GOP size
 
-3. **Compression Ratio**: If result file is too large, try:
-   - Increasing GOP size
-   - Using more aggressive quantization
-   - Checking RLE implementation for efficiency 
+3. **Quality vs Compression**:
+   - Basic: Adjust quantization factor in `q_matrix.m`
+   - Improved: Adjust factor in `q_matrix_improved.m`
+   - Modify GOP size in respective compression scripts
