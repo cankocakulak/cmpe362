@@ -17,5 +17,5 @@ function q_matrix = q_matrix()
     % Apply a simple quality scaling
     % For quality focus, use a factor slightly less than 1
     % to preserve more detail
-    q_matrix = base_matrix * 0.9;  % Minimal scaling for high quality
+    q_matrix = base_matrix * 5.0;  % More aggressive quantization
 end 

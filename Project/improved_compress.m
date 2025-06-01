@@ -1,7 +1,4 @@
-# This is a new file, copied from compress.m
-# It will be modified to include motion estimation. 
-
-function compress()
+function improved_compress()
     % Add helper directories to path
     addpath('./helpers/');
     addpath('./helpers/compression/');
@@ -29,7 +26,7 @@ function compress()
     output_file = 'result_improved.bin'; % Changed output file name
     
     % Get quantization matrix
-    q_mat = q_matrix();
+    q_mat = q_matrix_improved();
     
     % Debug: Print quantization matrix
     % fprintf('Quantization Matrix:\n');
@@ -122,16 +119,31 @@ function compress()
                     mv_col = mv_c;
                     best_match_block_for_p_recon = best_match_block; % Save for reconstruction step
 
+                    % --- Start Diagnostic --- 
+                    % Get the block at the same position (as old compressor would use)
+                    % Ensure to handle boundary conditions for original_pos_ref_block extraction
+                    ref_block_row_orig_pos_end = mb_row_start_in_frame + block_size - 1;
+                    ref_block_col_orig_pos_end = mb_col_start_in_frame + block_size - 1;
+
+                    original_pos_ref_block = zeros(block_size, block_size, size(original_mb_content,3)); % Initialize
+                    if mb_row_start_in_frame >= 1 && ref_block_row_orig_pos_end <= size(prev_frame,1) && ...
+                       mb_col_start_in_frame >= 1 && ref_block_col_orig_pos_end <= size(prev_frame,2)
+                        original_pos_ref_block = prev_frame(mb_row_start_in_frame : ref_block_row_orig_pos_end, ...
+                                                          mb_col_start_in_frame : ref_block_col_orig_pos_end, :);
+                        sad_orig_pos = sum(abs(original_mb_content(:) - original_pos_ref_block(:)));
+                    else
+                        sad_orig_pos = inf; % Cannot compare if original position is out of bounds (should not happen for prev_frame)
+                    end
+                    sad_me = sum(abs(original_mb_content(:) - best_match_block(:)));
+                    % --- End Diagnostic ---
+
                     % Compute residual against the best_match_block
                     residual = original_mb_content - best_match_block;
-                    
-                    % For quality focus, use very minimal thresholding (optional)
-                    % residual(abs(residual) < 1) = 0; 
                     
                     mb_to_encode = residual; % The residual is what we DCT and quantize
 
                     if r_mb == 1 && c_mb == 1 && frame_idx > 1 % Debug first MB of a P-frame
-                        fprintf('P-Frame %d, MB(1,1): MV=(%d, %d)\n', frame_idx, mv_row, mv_col);
+                        fprintf('P-Frame %d, MB(1,1): MV=(%d,%d), SAD_ME=%.1f, SAD_ORIG_POS=%.1f\n', frame_idx, mv_row, mv_col, sad_me, sad_orig_pos);
                         fprintf('Residual (after ME) stats - Min: %.2f, Max: %.2f\n', ...
                                 min(mb_to_encode(:)), max(mb_to_encode(:)));
                     end

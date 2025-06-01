@@ -18,25 +18,20 @@ function [mv_row, mv_col, best_match_block] = block_matching(current_mb, ref_fra
     mv_row = 0;
     mv_col = 0;
     best_match_block = zeros(size(current_mb));
+    found_any_block = false; % Flag to see if any valid block is processed
 
     % --- Exhaustive Search Example --- 
-    % Search window boundaries in the reference frame
-    % (Ensure they don't go out of frame bounds)
     for r_offset = -search_range:search_range
         for c_offset = -search_range:search_range
-            % Top-left corner of the candidate block in the reference frame
             ref_block_row_start = mb_row_start + r_offset;
             ref_block_col_start = mb_col_start + c_offset;
 
-            % Check bounds: Ensure the candidate block is within the reference frame
             if ref_block_row_start >= 1 && ref_block_row_start + mb_height - 1 <= ref_height && ...
                ref_block_col_start >= 1 && ref_block_col_start + mb_width - 1 <= ref_width
                 
-                % Extract candidate block from reference frame
+                found_any_block = true;
                 candidate_block = ref_frame(ref_block_row_start : ref_block_row_start + mb_height - 1, ...
                                           ref_block_col_start : ref_block_col_start + mb_width - 1, :);
-
-                % Calculate SAD (Sum of Absolute Differences) for all channels
                 sad = sum(abs(current_mb(:) - candidate_block(:)));
 
                 if sad < min_sad
@@ -44,7 +39,7 @@ function [mv_row, mv_col, best_match_block] = block_matching(current_mb, ref_fra
                     mv_row = r_offset;
                     mv_col = c_offset;
                     best_match_block = candidate_block;
-                elseif sad == min_sad % Tie-breaking: prefer zero motion vector or smaller magnitude
+                elseif sad == min_sad 
                     if (r_offset^2 + c_offset^2) < (mv_row^2 + mv_col^2)
                         mv_row = r_offset;
                         mv_col = c_offset;
@@ -54,10 +49,13 @@ function [mv_row, mv_col, best_match_block] = block_matching(current_mb, ref_fra
             end
         end
     end
-    % If no valid block was found (e.g. current_mb is at border and search_range is large)
-    % ensure best_match_block is the one at (0,0) offset if possible, or current_mb itself.
-    if isinf(min_sad)
-        % Fallback: use block at (0,0) offset if within bounds
+    
+    if ~found_any_block
+         warning('Block_matching: No valid blocks found in search window for MB at (%d,%d). Check search_range or frame boundaries.', mb_row_start, mb_col_start);
+    end
+
+    if isinf(min_sad) 
+        % Fallback logic as before
         ref_block_row_start = mb_row_start;
         ref_block_col_start = mb_col_start;
         if ref_block_row_start >= 1 && ref_block_row_start + mb_height - 1 <= ref_height && ...
@@ -67,13 +65,8 @@ function [mv_row, mv_col, best_match_block] = block_matching(current_mb, ref_fra
             mv_row = 0;
             mv_col = 0;
         else
-            % This case should ideally not happen if block is from a valid frame.
-            % As a last resort, if no reference block can be formed, 
-            % this might indicate an issue or a need for different handling.
-            % For now, using the current_mb itself would mean zero residual, 
-            % but this is not a true "match". Or, return an error/flag.
-            warning('No valid reference block found for motion estimation. Using original block.');
-            best_match_block = current_mb; % Or handle error
+            warning('Block_matching: Fallback failed for MB at (%d,%d). No reference block could be formed.', mb_row_start, mb_col_start);
+            best_match_block = current_mb; 
             mv_row = 0;
             mv_col = 0; 
         end

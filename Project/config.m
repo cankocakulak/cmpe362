@@ -1,8 +1,8 @@
 function params = config()
-    params.GOP_SIZE = 15;
+    params.GOP_SIZE = 30;
     params.RESIDUAL_THRESHOLD = 0;
-    params.TEST_MODE = 1;
-    params.TEST_FRAMES = 5;
+    params.TEST_MODE = 0;
+    params.TEST_FRAMES = 15;
     params.QUALITY_FACTOR = 0.8;
     params.FREQ_WEIGHT_FACTOR = 0.2;
     params.DC_SCALE_FACTOR = 0.8;

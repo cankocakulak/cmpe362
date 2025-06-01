@@ -1,7 +1,4 @@
-# This is a new file, copied from decompress.m
-# It will be modified to handle motion vectors. 
-
-function decompress()
+function improved_decompress()
     % Add helper directories to path
     addpath('./helpers/');
     addpath('./helpers/compression/');
@@ -29,7 +26,7 @@ function decompress()
     end
     
     % Get quantization matrix
-    q_mat = q_matrix();
+    q_mat = q_matrix_improved();
     
     % Open input file
     fid = fopen(input_file, 'rb');
